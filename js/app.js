@@ -1,4 +1,4 @@
-// Controlador de Interface SPA & Módulo de Patrimônio
+// Controlador de Interface SPA
 import { CONFIG } from './config.js';
 import { AuthManager } from './auth.js';
 import { DataManager } from './db.js';
@@ -132,12 +132,16 @@ document.addEventListener('DOMContentLoaded', () => {
       observacoes: document.getElementById('input-observacoes').value
     };
 
-    await DataManager.saveItem(itemData);
-    closeModal();
-    loadItemsTable();
+    const ok = await DataManager.saveItem(itemData);
+    if (ok) {
+      closeModal();
+      loadItemsTable();
+    }
   });
 
   async function loadItemsTable() {
+    itemsTableBody.innerHTML = `<tr><td colspan="8" class="text-center">Consultando banco de dados...</td></tr>`;
+    
     const items = await DataManager.getAllItems();
 
     let totalCount = items.length;
@@ -151,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
       itemsTableBody.innerHTML = `
         <tr>
           <td colspan="8" class="text-center" style="padding: 24px; color: #777;">
-            Nenhum patrimônio cadastrado. Clique em <strong>"+ Novo Item"</strong> para começar.
+            Nenhum patrimônio cadastrado neste ambiente. Clique em <strong>"+ Novo Item"</strong> para começar.
           </td>
         </tr>`;
     } else {
@@ -216,7 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
       appScreen.classList.add('active');
 
       userInfoDisplay.textContent = session.user.name;
-      const currentEnvConfig = CONFIG.getSuperDBConfig();
       envModeBadge.textContent = CONFIG.getEnvironment().toUpperCase();
 
       if (CONFIG.getEnvironment() === 'dev') {

@@ -1,8 +1,8 @@
-// Configuração global da aplicação, Versionamento e Chaves SuperDB por Ambiente
+// Configuração do Cliente SuperDB (SDK Supabase/SuperDB)
 
 export const CONFIG = {
   APP_NAME: 'Patrimônio Atibaia',
-  VERSION: '1.1.0.5', // Ajuste para SuperDB Auth Nativo (superdb.auth.signUp)
+  VERSION: '1.1.0.7',
   
   ENV_KEY: 'patrimonio_env_mode',
 
@@ -11,18 +11,17 @@ export const CONFIG = {
     LOCAL_DATA: 'patrimonio_items_local'
   },
 
+  // Insira a URL e a Anon/Public Key do seu projeto SuperDB aqui:
   ENVIRONMENTS: {
     dev: {
       name: 'Desenvolvimento',
-      authUrl: 'https://auth-dev.superdb.com.br',
-      project: 'p_bb8ce510ea',
-      anonKey: 'CHAVE_SUPERDB_DEV_ANON_KEY'
+      url: 'https://p_bb8ce510ea.superdb.com.br', // Substitua pela URL da instância DEV
+      anonKey: 'eyJhbGciOiJFUzI1NiIsImtpZCI6ImRwa18yNjA2XzY1NzMwNTM2IiwidHlwIjoiSldUIn0.eyJyb2xlIjoiYW5vbiIsInByb2plY3RfaWQiOiJkNGNmM2JkZi00ZDI1LTRhZGItYjcxOS0wZTQ5MWM1NjVhMTgiLCJwcm9qZWN0X3NjaGVtYSI6InByb2pfcF9iYjhjZTUxMGVhIiwia3YiOjEsInN1YiI6ImFwaWtleTphbm9uIiwiaWF0IjoxNzk0MjQxNTgyLCJpc3MiOiJodHRwczovL2F1dGguc3VwZXJkYi5jb20uYnIiLCJhdWQiOiJodHRwczovL2FwaS5zdXBlcmRiLmNvbS5iciJ9.nGXVWTgL4G7e_Y34w3oSpGO53clyUMPZo-XnCxNw5gtOJxofCcl-LAuL2IXz50IMINL4lQMyBItsDoo6gvFfQw'
     },
     release: {
       name: 'Produção (Release)',
-      authUrl: 'https://auth.superdb.com.br',
-      project: 'p_bb8ce510ea',
-      anonKey: 'CHAVE_SUPERDB_RELEASE_ANON_KEY'
+      url: 'https://p_bb8ce510ea.superdb.com.br', // Substitua pela URL da instância RELEASE
+      anonKey: 'SUA_ANON_KEY_RELEASE_AQUI'
     }
   },
 

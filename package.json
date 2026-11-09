@@ -1,6 +1,6 @@
 {
   "name": "gestao-patrimonio-atibaia",
-  "version": "1.1.0.5",
+  "version": "1.1.0.7",
   "description": "Sistema de Controle de Patrimônio para a Prefeitura da Estância de Atibaia",
   "main": "index.html",
   "scripts": {

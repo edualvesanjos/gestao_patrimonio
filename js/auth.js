@@ -1,5 +1,15 @@
-// Gerenciador de Autenticação utilizando o módulo nativo superdb.auth
+// Gerenciador de Autenticação com cliente SuperDB Real
 import { CONFIG } from './config.js';
+
+let superdbClient = null;
+
+export function getSuperDBClient() {
+  const cfg = CONFIG.getSuperDBConfig();
+  if (!superdbClient && window.supabase) {
+    superdbClient = window.supabase.createClient(cfg.url, cfg.anonKey);
+  }
+  return superdbClient;
+}
 
 export const AuthManager = {
   getCurrentUser() {
@@ -18,23 +28,23 @@ export const AuthManager = {
     return sessionData;
   },
 
-  // Login via SuperDB Auth Nativo
+  // Login real no SuperDB Auth
   async loginSuperDB(email, password) {
     try {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
-      const activeEnv = CONFIG.getSuperDBConfig();
-      console.log(`[AUTH] Login via SuperDB Auth em ${activeEnv.authUrl} (Projeto: ${activeEnv.project})`);
+      const client = getSuperDBClient();
+      if (!client) throw new Error("Cliente SuperDB não foi inicializado. Verifique a URL e Anon Key no config.js.");
 
-      // Exemplo real usando a chamada oficial do SDK SuperDB Auth:
-      // const { data, error } = await superdb.auth.signInWithPassword({ email, password });
-      // if (error) throw error;
-      // const user = { id: data.user.id, email: data.user.email, name: email.split('@')[0] };
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      
+      if (error) throw error;
+      if (!data || !data.user) throw new Error("Nenhum usuário retornado na autenticação.");
 
       const user = {
-        id: 'usr_superdb_' + Date.now(),
-        name: email.split('@')[0],
-        email: email
+        id: data.user.id,
+        name: data.user.email.split('@')[0],
+        email: data.user.email
       };
       
       return this.setSession(user, 'superdb');
@@ -44,28 +54,32 @@ export const AuthManager = {
     }
   },
 
-  // Cadastro via SuperDB Auth Nativo (superdb.auth.signUp)
+  // Cadastro real no SuperDB Auth (superdb.auth.signUp)
   async registerSuperDB(email, password) {
     try {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
-      const activeEnv = CONFIG.getSuperDBConfig();
-      console.log(`[AUTH] Cadastrando via superdb.auth.signUp ({ email, password }) em ${activeEnv.authUrl}`);
+      const client = getSuperDBClient();
+      if (!client) throw new Error("Cliente SuperDB não foi inicializado. Verifique a URL e Anon Key no config.js.");
 
-      // Executa a chamada nativa do SDK:
-      // const { data, error } = await superdb.auth.signUp({ email, password });
-      // if (error) throw error;
+      const { data, error } = await client.auth.signUp({ email, password });
+
+      if (error) throw error;
+      
+      if (!data || !data.user) {
+        throw new Error("Erro na criação da conta. Verifique os logs da API.");
+      }
 
       const user = { 
-        id: 'usr_superdb_' + Date.now(),
-        name: email.split('@')[0],
-        email 
+        id: data.user.id,
+        name: data.user.email.split('@')[0],
+        email: data.user.email 
       };
 
-      alert(`Usuário registrado com sucesso no serviço de Auth do SuperDB (${activeEnv.name})!`);
+      alert(`Usuário registrado com sucesso no SuperDB! Acesso efetuado.`);
       return this.setSession(user, 'superdb');
     } catch (err) {
-      alert("Erro ao cadastrar usuário via SuperDB Auth: " + err.message);
+      alert("Erro ao cadastrar usuário via SuperDB: " + err.message);
       return null;
     }
   },
@@ -79,7 +93,11 @@ export const AuthManager = {
     return this.setSession(guestUser, 'local');
   },
 
-  logout() {
+  async logout() {
+    const client = getSuperDBClient();
+    if (client) {
+      await client.auth.signOut().catch(() => {});
+    }
     localStorage.removeItem(CONFIG.STORAGE_KEYS.USER_SESSION);
     window.location.reload();
   }
