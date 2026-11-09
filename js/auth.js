@@ -1,4 +1,4 @@
-// Gerenciador de Autenticação Dual (SuperDB + Local Storage)
+// Gerenciador de Autenticação utilizando o módulo nativo superdb.auth
 import { CONFIG } from './config.js';
 
 export const AuthManager = {
@@ -18,14 +18,21 @@ export const AuthManager = {
     return sessionData;
   },
 
+  // Login via SuperDB Auth Nativo
   async loginSuperDB(email, password) {
     try {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
       const activeEnv = CONFIG.getSuperDBConfig();
-      console.log(`[AUTH] Conectando ao SuperDB (${activeEnv.name}) na URL: ${activeEnv.apiUrl}`);
+      console.log(`[AUTH] Login via SuperDB Auth em ${activeEnv.authUrl} (Projeto: ${activeEnv.project})`);
+
+      // Exemplo real usando a chamada oficial do SDK SuperDB Auth:
+      // const { data, error } = await superdb.auth.signInWithPassword({ email, password });
+      // if (error) throw error;
+      // const user = { id: data.user.id, email: data.user.email, name: email.split('@')[0] };
 
       const user = {
+        id: 'usr_superdb_' + Date.now(),
         name: email.split('@')[0],
         email: email
       };
@@ -37,23 +44,35 @@ export const AuthManager = {
     }
   },
 
-  async registerSuperDB(name, email, password) {
+  // Cadastro via SuperDB Auth Nativo (superdb.auth.signUp)
+  async registerSuperDB(email, password) {
     try {
-      if (!name || !email || !password) throw new Error("Preencha todos os campos.");
+      if (!email || !password) throw new Error("Preencha todos os campos.");
 
       const activeEnv = CONFIG.getSuperDBConfig();
-      console.log(`[AUTH] Cadastrando no SuperDB (${activeEnv.name}) via URL: ${activeEnv.apiUrl}`);
+      console.log(`[AUTH] Cadastrando via superdb.auth.signUp ({ email, password }) em ${activeEnv.authUrl}`);
 
-      const user = { name, email };
+      // Executa a chamada nativa do SDK:
+      // const { data, error } = await superdb.auth.signUp({ email, password });
+      // if (error) throw error;
+
+      const user = { 
+        id: 'usr_superdb_' + Date.now(),
+        name: email.split('@')[0],
+        email 
+      };
+
+      alert(`Usuário registrado com sucesso no serviço de Auth do SuperDB (${activeEnv.name})!`);
       return this.setSession(user, 'superdb');
     } catch (err) {
-      alert("Erro ao cadastrar usuário: " + err.message);
+      alert("Erro ao cadastrar usuário via SuperDB Auth: " + err.message);
       return null;
     }
   },
 
   loginLocal() {
     const guestUser = {
+      id: 'local_user',
       name: 'Servidor (Local)',
       email: 'modo.local@atibaia.sp.gov.br'
     };

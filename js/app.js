@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formRegister = document.getElementById('form-register');
   const btnGuest = document.getElementById('btn-guest');
   const btnLogout = document.getElementById('btn-logout');
+  const btnSyncCloud = document.getElementById('btn-sync-cloud');
   const envSelector = document.getElementById('env-selector');
 
   const userInfoDisplay = document.getElementById('user-info-display');
@@ -19,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const envModeBadge = document.getElementById('env-mode-badge');
   const appVersionDisplay = document.getElementById('app-version-display');
 
-  // Elementos do Módulo CRUD Patrimônio
   const btnOpenModal = document.getElementById('btn-open-modal');
   const btnCloseModal = document.getElementById('btn-close-modal');
   const btnCancelModal = document.getElementById('btn-cancel-modal');
@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const itemsTableBody = document.getElementById('items-table-body');
   const modalTitle = document.getElementById('modal-title');
 
-  // Elementos dos Cards de Estatística
   const totalCountEl = document.getElementById('total-count');
   const totalQtyEl = document.getElementById('total-qty');
   const activeCountEl = document.getElementById('active-count');
@@ -45,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Alternância de Abas na Tela de Auth
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       tabBtns.forEach(b => b.classList.remove('active'));
@@ -68,11 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   formRegister.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = document.getElementById('reg-name').value;
     const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
 
-    const session = await AuthManager.registerSuperDB(name, email, password);
+    const session = await AuthManager.registerSuperDB(email, password);
     if (session) checkAuthAndRender();
   });
 
@@ -85,7 +82,13 @@ document.addEventListener('DOMContentLoaded', () => {
     AuthManager.logout();
   });
 
-  // Controls Modal
+  if (btnSyncCloud) {
+    btnSyncCloud.addEventListener('click', async () => {
+      const ok = await DataManager.syncLocalToCloud();
+      if (ok) loadItemsTable();
+    });
+  }
+
   function openModal(item = null) {
     formItem.reset();
     document.getElementById('item-id').value = '';
@@ -115,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
   btnCloseModal.addEventListener('click', closeModal);
   btnCancelModal.addEventListener('click', closeModal);
 
-  // Submit Formulário de Item (Salvar / Editar)
   formItem.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -135,7 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadItemsTable();
   });
 
-  // Renderizar Tabela e Cards de Estatísticas
   async function loadItemsTable() {
     const items = await DataManager.getAllItems();
 
@@ -184,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsTableBody.appendChild(tr);
       });
 
-      // Bind botões de ação dinâmicos
       document.querySelectorAll('.btn-edit').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const id = e.target.getAttribute('data-id');
@@ -202,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Atualiza indicadores
     totalCountEl.textContent = totalCount;
     totalQtyEl.textContent = totalQty;
     activeCountEl.textContent = activeCount;
@@ -231,9 +230,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (session.mode === 'superdb') {
         storageModeBadge.textContent = 'SuperDB Nuvem';
         storageModeBadge.style.background = '#0056b3';
+        if (btnSyncCloud) btnSyncCloud.style.display = 'inline-block';
       } else {
         storageModeBadge.textContent = 'Modo Local';
         storageModeBadge.style.background = '#6c757d';
+        if (btnSyncCloud) btnSyncCloud.style.display = 'none';
       }
 
       loadItemsTable();

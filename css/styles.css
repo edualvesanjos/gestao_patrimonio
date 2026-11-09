@@ -98,6 +98,8 @@ body {
 .btn-primary:hover { background-color: var(--primary-hover); }
 .btn-secondary { background-color: #6c757d; color: white; }
 .btn-secondary:hover { background-color: #5a6268; }
+.btn-sync { background-color: #28a745; color: white; border: none; }
+.btn-sync:hover { background-color: #218838; }
 .btn-danger { background-color: var(--danger); color: white; }
 .btn-danger:hover { background-color: #bd2130; }
 .btn-outline { background: transparent; border: 1px solid white; color: white; }

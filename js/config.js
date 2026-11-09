@@ -2,7 +2,7 @@
 
 export const CONFIG = {
   APP_NAME: 'Patrimônio Atibaia',
-  VERSION: '1.1.0', // Versão 1.1.0 - Módulo CRUD de Patrimônio
+  VERSION: '1.1.0.5', // Ajuste para SuperDB Auth Nativo (superdb.auth.signUp)
   
   ENV_KEY: 'patrimonio_env_mode',
 
@@ -14,13 +14,15 @@ export const CONFIG = {
   ENVIRONMENTS: {
     dev: {
       name: 'Desenvolvimento',
-      apiUrl: 'https://dev-api.superdb.example/v1',
-      apiKey: 'CHAVE_SUPERDB_DEV_XXXXXXXXXXXXXXXX'
+      authUrl: 'https://auth-dev.superdb.com.br',
+      project: 'p_bb8ce510ea',
+      anonKey: 'CHAVE_SUPERDB_DEV_ANON_KEY'
     },
     release: {
       name: 'Produção (Release)',
-      apiUrl: 'https://api.superdb.example/v1',
-      apiKey: 'CHAVE_SUPERDB_RELEASE_YYYYYYYYYYYYYYYY'
+      authUrl: 'https://auth.superdb.com.br',
+      project: 'p_bb8ce510ea',
+      anonKey: 'CHAVE_SUPERDB_RELEASE_ANON_KEY'
     }
   },
 

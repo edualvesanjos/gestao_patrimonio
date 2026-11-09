@@ -44,10 +44,6 @@
       <!-- Form Cadastro -->
       <form id="form-register" class="auth-form">
         <div class="form-group">
-          <label for="reg-name">Nome Completo</label>
-          <input type="text" id="reg-name" placeholder="Nome do servidor/colaborador" required />
-        </div>
-        <div class="form-group">
           <label for="reg-email">E-mail</label>
           <input type="email" id="reg-email" placeholder="seu.email@atibaia.sp.gov.br" required />
         </div>
@@ -55,7 +51,7 @@
           <label for="reg-password">Senha</label>
           <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" required />
         </div>
-        <button type="submit" class="btn btn-primary">Criar Conta</button>
+        <button type="submit" class="btn btn-primary">Criar Conta no SuperDB</button>
       </form>
 
       <div class="divider">ou</div>
@@ -80,18 +76,17 @@
         <span id="user-info-display">Carregando...</span>
         <span id="storage-mode-badge" class="badge">Local</span>
         <span id="env-mode-badge" class="badge badge-env">RELEASE</span>
+        <button id="btn-sync-cloud" class="btn btn-sm btn-sync" title="Sincronizar itens locais para a nuvem SuperDB">☁️ Sincronizar</button>
         <button id="btn-logout" class="btn btn-sm btn-outline">Sair</button>
       </div>
     </header>
 
     <main class="app-content">
-      <!-- Ações do Topo -->
       <div class="action-bar">
         <h2>Controle de Ativos Patrimoniais</h2>
         <button id="btn-open-modal" class="btn btn-primary">+ Novo Item</button>
       </div>
 
-      <!-- Resumo Rápido -->
       <div class="status-cards">
         <div class="card">
           <h3>Total de Itens</h3>
@@ -111,7 +106,6 @@
         </div>
       </div>
 
-      <!-- Tabela de Patrimônios -->
       <section class="table-container">
         <table class="data-table">
           <thead>
@@ -193,7 +187,7 @@
   </div>
 
   <footer class="app-version-footer">
-    <small>Versão <span id="app-version-display">v1.1.0</span> | Prefeitura de Atibaia</small>
+    <small>Versão <span id="app-version-display">v1.1.0.5</span> | Prefeitura de Atibaia</small>
   </footer>
 
   <script type="module" src="js/config.js"></script>

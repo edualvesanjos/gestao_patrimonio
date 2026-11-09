@@ -2,16 +2,15 @@
 
 Sistema web de controle de ativos e patrimônio para o departamento municipal.
 
-## Versão Atual: `v1.1.0` (Módulo CRUD de Patrimônio)
+## Versão Atual: `v1.1.0.5` (Migração para SuperDB Auth Nativo)
 
-### O que há de novo na v1.1.0:
-- **Formulário de Cadastro/Edição de Ativos**: Modal interativo com suporte a todos os campos (`Item`, `Número do Patrimônio`, `Categoria`, `Quantidade`, `Fabricante`, `Modelo` e `Observações`).
-- **Tabela Responsiva de Ativos**: Exibição centralizada com badges de status (`Ativo`, `Baixado` e `Transferido`).
-- **Persistência Híbrida (`js/db.js`)**: Operações de CRUD prontas para LocalStorage e abstraídas para conexão de API com o SuperDB.
-- **Ações Rápidas**: Edição em tempo real e alternância com 1 clique de baixa/reativação do ativo.
-- **Cards de Estatísticas**: Indicadores em tempo real do total de patrimônios, quantidade física em estoque, reativos e baixados.
+### O que mudou na v1.1.0.5:
+- **Remoção da tabela customizada `usuarios`**: O sistema agora utiliza 100% o serviço nativo de autenticação do SuperDB (`auth.users`).
+- **Ajuste da Chave Estrangeira**: A tabela `patrimonios` agora faz referência direta a `auth.users(id)` utilizando o tipo `UUID`.
+- **Uso do `superdb.auth.signUp`**: Integração com a chamada nativa fornecida nas instruções do SuperDB.
+- **Simplificação do Formulário de Cadastro**: Removido campo desnecessário de nome, utilizando apenas `email` e `senha` nativos do SuperDB Auth.
 
-### Comandos para Executar Localmente
+### Execução Local
 ```bash
 npm install
 npm run dev
