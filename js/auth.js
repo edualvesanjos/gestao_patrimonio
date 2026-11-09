@@ -1,6 +1,7 @@
 // Gerenciador de Autenticação Dual (SuperDB + Local Storage) com Suporte a Ambientes
+import { CONFIG } from './config.js';
 
-const AuthManager = {
+export const AuthManager = {
   getCurrentUser() {
     const session = localStorage.getItem(CONFIG.STORAGE_KEYS.USER_SESSION);
     return session ? JSON.parse(session) : null;
@@ -9,7 +10,7 @@ const AuthManager = {
   setSession(user, mode) {
     const sessionData = {
       user: user,
-      mode: mode, // 'superdb' ou 'local'
+      mode: mode,
       env: CONFIG.getEnvironment(),
       loggedAt: new Date().toISOString()
     };
@@ -65,3 +66,5 @@ const AuthManager = {
     window.location.reload();
   }
 };
+
+window.AuthManager = AuthManager;

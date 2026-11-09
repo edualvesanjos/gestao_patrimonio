@@ -1,4 +1,6 @@
 // Controlador de Interface e Navegação SPA
+import { CONFIG } from './config.js';
+import { AuthManager } from './auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const authScreen = document.getElementById('auth-screen');
@@ -19,12 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentUserEmail = document.getElementById('current-user-email');
   const appVersionDisplay = document.getElementById('app-version-display');
 
-  // Exibe a versão atual configurada no config.js
   if (appVersionDisplay) {
     appVersionDisplay.textContent = `v${CONFIG.VERSION}`;
   }
 
-  // Sincroniza o seletor de ambiente com o valor salvo
   if (envSelector) {
     envSelector.value = CONFIG.getEnvironment();
     envSelector.addEventListener('change', (e) => {
@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Alternância de Abas na Tela de Auth
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       tabBtns.forEach(b => b.classList.remove('active'));
@@ -45,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Submit Login SuperDB
   formLogin.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('login-email').value;
@@ -55,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (session) checkAuthAndRender();
   });
 
-  // Submit Cadastro SuperDB
   formRegister.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('reg-name').value;
@@ -66,18 +63,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (session) checkAuthAndRender();
   });
 
-  // Acesso Modo Local
   btnGuest.addEventListener('click', () => {
     AuthManager.loginLocal();
     checkAuthAndRender();
   });
 
-  // Logout
   btnLogout.addEventListener('click', () => {
     AuthManager.logout();
   });
 
-  // Verificação de Estado da Sessão e Troca de Telas
   function checkAuthAndRender() {
     const session = AuthManager.getCurrentUser();
 
@@ -111,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else {
       appScreen.classList.remove('active');
-      authScreen.classList.active;
+      authScreen.classList.add('active');
     }
   }
 

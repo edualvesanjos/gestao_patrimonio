@@ -1,0 +1,22 @@
+{
+  "name": "gestao-patrimonio-atibaia",
+  "version": "1.0.1",
+  "description": "Sistema de Controle de Patrimônio para a Prefeitura da Estância de Atibaia",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "patrimonio",
+    "atibaia",
+    "gestao",
+    "superdb"
+  ],
+  "author": "Prefeitura de Atibaia",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
