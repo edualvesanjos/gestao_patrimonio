@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle de Patrimônio - Prefeitura de Atibaia</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- Tela de Login / Acesso -->
+  <div id="auth-screen" class="screen active">
+    <div class="auth-card">
+      <div class="brand">
+        <h2>Gestão de Patrimônio</h2>
+        <p>Prefeitura da Estância de Atibaia</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="login">Entrar</button>
+        <button class="tab-btn" data-tab="register">Cadastrar</button>
+      </div>
+
+      <!-- Form Login -->
+      <form id="form-login" class="auth-form active">
+        <div class="form-group">
+          <label for="login-email">E-mail</label>
+          <input type="email" id="login-email" placeholder="seu.email@atibaia.sp.gov.br" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Senha</label>
+          <input type="password" id="login-password" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Entrar via SuperDB</button>
+      </form>
+
+      <!-- Form Cadastro -->
+      <form id="form-register" class="auth-form">
+        <div class="form-group">
+          <label for="reg-name">Nome Completo</label>
+          <input type="text" id="reg-name" placeholder="Nome do servidor/colaborador" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-email">E-mail</label>
+          <input type="email" id="reg-email" placeholder="seu.email@atibaia.sp.gov.br" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Senha</label>
+          <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Criar Conta</button>
+      </form>
+
+      <div class="divider">ou</div>
+
+      <!-- Opção de Acesso Local / Convidado -->
+      <button id="btn-guest" class="btn btn-secondary">
+        Usar Modo Local (Sem Cadastro)
+      </button>
+
+      <p class="auth-footer-note">
+        * No modo local, seus dados ficam salvos exclusivamente neste navegador.
+      </p>
+    </div>
+  </div>
+
+  <!-- Tela Principal da Aplicação (Layout Base) -->
+  <div id="app-screen" class="screen">
+    <header class="app-header">
+      <div class="header-brand">
+        <h1>Patrimônio <span>| Atibaia</span></h1>
+      </div>
+      <div class="header-user">
+        <span id="user-info-display">Carregando...</span>
+        <span id="storage-mode-badge" class="badge">Local</span>
+        <button id="btn-logout" class="btn btn-sm btn-outline">Sair</button>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <section class="welcome-box">
+        <h2>Painel Principal de Ativos</h2>
+        <p>A estrutura inicial da Fase 1 está configurada e pronta para receber o módulo de CRUD da Fase 2.</p>
+        
+        <div class="status-cards">
+          <div class="card">
+            <h3>Modo de Banco</h3>
+            <p id="current-db-mode">-</p>
+          </div>
+          <div class="card">
+            <h3>Usuário Conectado</h3>
+            <p id="current-user-email">-</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
