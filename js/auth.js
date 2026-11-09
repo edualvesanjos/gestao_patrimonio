@@ -59,10 +59,16 @@ export const AuthManager = {
         body: JSON.stringify({ email, password })
       });
 
-      const responseData = await res.json();
+      const responseText = await res.text();
+      let responseData = {};
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (parseErr) {
+        throw new Error(responseText || "Erro inesperado na resposta do servidor.");
+      }
 
       if (!res.ok) {
-        throw new Error(responseData.msg || responseData.error_description || responseData.message || 'Falha na autenticação.');
+        throw new Error(responseData.msg || responseData.error_description || responseData.message || 'Credenciais inválidas ou erro no servidor.');
       }
 
       const user = {
@@ -84,7 +90,6 @@ export const AuthManager = {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
       const cfg = CONFIG.getSuperDBConfig();
-      console.log(`[AUTH] Enviando cabeçalho X-SuperDB-Project: ${cfg.projectSlug}`);
 
       const res = await fetch(`${cfg.authUrl}/auth/v1/signup`, {
         method: 'POST',
@@ -96,7 +101,13 @@ export const AuthManager = {
         body: JSON.stringify({ email, password })
       });
 
-      const responseData = await res.json();
+      const responseText = await res.text();
+      let responseData = {};
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (parseErr) {
+        throw new Error(responseText || "Erro inesperado na resposta do servidor.");
+      }
 
       if (!res.ok) {
         throw new Error(responseData.msg || responseData.error_description || responseData.message || 'Erro ao criar conta no servidor SuperDB.');
