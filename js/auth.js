@@ -1,5 +1,21 @@
-// Gerenciador de Autenticação com suporte a data_plane_token do SuperDB
+// Gerenciador de Autenticação com Extração Robusta de JWT (Data Plane Token)
 import { CONFIG } from './config.js';
+
+// Função auxiliar para procurar um JWT válido (inicia com eyJ e possui 3 partes separadas por ponto)
+function findValidJWT(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  for (let key in obj) {
+    const val = obj[key];
+    if (typeof val === 'string' && val.startsWith('eyJ') && val.split('.').length === 3) {
+      return val;
+    }
+    if (typeof val === 'object') {
+      const nested = findValidJWT(val);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
 
 export const AuthManager = {
   getCurrentUser() {
@@ -34,14 +50,24 @@ export const AuthManager = {
         body: JSON.stringify({ email, password })
       }).catch(() => null);
 
-      let dataPlaneToken = cfg.anonKey;
+      let dataPlaneToken = cfg.anonKey; // Fallback JWT se nada for retornado (útil em testes locais)
       let userId = 'usr_' + btoa(email).replace(/=/g, '');
 
       if (res && res.ok) {
         const responseData = await res.json();
         userId = responseData.user ? responseData.user.id : (responseData.id || userId);
-        // Utiliza prioritariamente o data_plane_token informado pelo SuperDB para chamadas no data-plane (REST)
-        dataPlaneToken = responseData.data_plane_token || responseData.access_token || cfg.anonKey;
+        
+        // Garante que não usaremos o access_token se ele for PASETO (v4.local...)
+        // Tenta achar explicitamente o data_plane_token na raiz ou na sessão
+        let extractedToken = responseData.data_plane_token || (responseData.session && responseData.session.data_plane_token);
+        
+        if (!extractedToken) {
+           extractedToken = findValidJWT(responseData);
+        }
+        
+        if (extractedToken && extractedToken.startsWith('eyJ')) {
+          dataPlaneToken = extractedToken;
+        }
       }
 
       const user = {
@@ -80,7 +106,13 @@ export const AuthManager = {
       if (res && res.ok) {
         const responseData = await res.json();
         userId = responseData.user ? responseData.user.id : (responseData.id || userId);
-        dataPlaneToken = responseData.data_plane_token || responseData.access_token || cfg.anonKey;
+        
+        let extractedToken = responseData.data_plane_token || (responseData.session && responseData.session.data_plane_token);
+        if (!extractedToken) extractedToken = findValidJWT(responseData);
+        
+        if (extractedToken && extractedToken.startsWith('eyJ')) {
+          dataPlaneToken = extractedToken;
+        }
       }
 
       const user = { 

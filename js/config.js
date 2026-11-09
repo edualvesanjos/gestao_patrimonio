@@ -2,7 +2,7 @@
 
 export const CONFIG = {
   APP_NAME: 'Patrimônio Atibaia',
-  VERSION: '1.1.0.16',
+  VERSION: '1.1.0.17',
   
   ENV_KEY: 'patrimonio_env_mode',
 

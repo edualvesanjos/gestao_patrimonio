@@ -2,18 +2,14 @@
 
 Sistema web de controle de ativos e patrimônio para o departamento municipal.
 
-## Versão Atual: `v1.1.0.16` (Resolução do Token PGRST301, Evitar Duplicação & Indicador de Status Sync)
+## Versão Atual: `v1.1.0.17` (Resolução Definitiva PGRST301 e Eliminação do Bug de Duplicação)
 
-### 1. Correção do Erro `PGRST301` ("Token inválido para a API de dados")
-No SuperDB, o token de sessão retornado (`access_token`) utiliza o formato PASETO e é exclusivo do control-plane de autenticação. Para consumir a API REST de dados (`data-plane`), deve ser enviado o `data_plane_token` (JWT válido).
-- Atualizado em `js/auth.js` para armazenar `user.dataPlaneToken`.
-- Atualizado em `js/db.js` para enviar `Authorization: Bearer ${user.dataPlaneToken}` em todas as requisições à REST API.
+### O que originou as falhas no seu ambiente de testes?
+1. **Erro PGRST301 de Sincronização**: O seu navegador guardou em *cache* local (`localStorage`) uma sessão antiga contendo um token de controlo de sessão (`PASETO` iniciado em `v4.local.`). A API de dados exige um JWT real. 
+2. **Duplicação Visual ao Editar**: Como o envio para a Nuvem (Cloud) estava a falhar com o erro do token, o sistema tentava executar o modo "fallback local", que usava indevidamente o comando `push` em vez de localizar e atualizar a linha previamente existente no ecrã.
 
-### 2. Eliminação de Registros Duplicados na Edição
-- Ao editar um item, o `saveItem` preserva rigorosamente o ID existente (`pat_...` ou ID original do banco).
-- Adicionada a instrução `Prefer: resolution=merge-duplicates` no `POST` da REST API para realizar UPSERT (atualização sem criar novos registros).
-
-### 3. Indicador Visual de Status de Sincronização (Local vs Nuvem)
-- Adicionada uma coluna **Origem / Sync** na tabela principal de patrimônios.
-- **☁️ Nuvem** (Badge Azul): Indica que o item está persistido e confirmado no Banco de Dados SuperDB.
-- **💻 Local** (Badge Laranja): Indica que o item foi salvo/editado localmente no browser e aguarda sincronização.
+### Correções Aplicadas na v1.1.0.17:
+- **Limpeza de Sessão Corrompida (Auto Logout)**: Se o aplicativo detetar um token antigo no seu navegador (`v4.local.`), irá automaticamente desconectá-lo. Basta fazer um novo login e receberá o `data_plane_token` (JWT) válido!
+- **Extrator JWT à Prova de Falhas**: Novo algoritmo recursivo que procura e recolhe qualquer JWT válido da resposta de Autenticação para evitar falhas silenciosas.
+- **Edição Resiliente Sem Duplicados**: Correção do fallback no `db.js`. O código usa o `findIndex` para sobrepor o item editado.
+- **Requisição PATCH**: O botão "Salvar Ativo" (edição) agora utiliza nativamente o verbo `PATCH` com query param `?id=eq.{id}`, garantindo que o servidor substitui exatamente aquele ativo.

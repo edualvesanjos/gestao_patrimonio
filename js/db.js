@@ -49,66 +49,63 @@ export const DataManager = {
 
   async saveItem(itemData) {
     const session = AuthManager.getCurrentUser();
-    
-    // Mantém o ID original na edição ou gera um novo ID fixo para o patrimônio
-    const recordId = itemData.id ? itemData.id : 'pat_' + Date.now();
+    const isEdit = !!itemData.id;
+    const recordId = isEdit ? itemData.id : 'pat_' + Date.now();
+
+    const record = {
+      id: recordId,
+      usuario_id: session ? session.user.id : 'local_user',
+      item: itemData.item,
+      categoria: itemData.categoria,
+      quantidade: parseInt(itemData.quantidade) || 1,
+      fabricante: itemData.fabricante || null,
+      modelo: itemData.modelo || null,
+      num_patrimonio: itemData.num_patrimonio,
+      observacoes: itemData.observacoes || null,
+      baixado: itemData.baixado || false,
+      transferido: itemData.transferido || false
+    };
 
     if (session && session.mode === 'superdb') {
       const cfg = CONFIG.getSuperDBConfig();
       const authToken = session.user.dataPlaneToken || cfg.anonKey;
 
-      const record = {
-        id: recordId,
-        usuario_id: session.user.id,
-        item: itemData.item,
-        categoria: itemData.categoria,
-        quantidade: parseInt(itemData.quantidade) || 1,
-        fabricante: itemData.fabricante || null,
-        modelo: itemData.modelo || null,
-        num_patrimonio: itemData.num_patrimonio,
-        observacoes: itemData.observacoes || null,
-        baixado: itemData.baixado || false,
-        transferido: itemData.transferido || false
-      };
+      // Utiliza PATCH para edições e POST para criações
+      const url = isEdit 
+        ? `${cfg.apiUrl}/rest/v1/patrimonios?id=eq.${recordId}` 
+        : `${cfg.apiUrl}/rest/v1/patrimonios`;
+      const method = isEdit ? 'PATCH' : 'POST';
 
       try {
-        // Usa Prefer: resolution=merge-duplicates para UPSERT e evitar duplicação no BD
-        const res = await fetch(`${cfg.apiUrl}/rest/v1/patrimonios`, {
-          method: 'POST',
+        const res = await fetch(url, {
+          method: method,
           headers: {
             'Content-Type': 'application/json',
             'apikey': cfg.anonKey,
             'Authorization': `Bearer ${authToken}`,
             'X-SuperDB-Project': cfg.projectSlug,
-            'Prefer': 'resolution=merge-duplicates,return=representation'
+            'Prefer': 'return=representation'
           },
           body: JSON.stringify(record)
         });
 
         if (res.ok) {
-          // Remover do local após salvar com sucesso no banco de dados
+          // Remove a versão local para não duplicar se salvou com sucesso na nuvem
           let localItems = this._getLocalItems();
           localItems = localItems.filter(i => i.id !== recordId);
           this._setLocalItems(localItems);
           return true;
         }
       } catch (err) {
-        console.warn('[DB] Erro de rede ao salvar na nuvem:', err);
+        console.warn('[DB] Erro de rede ao salvar na nuvem, aplicando fallback local.');
       }
     }
 
-    // Se falhar ou estiver em modo local, salva no localStorage com o mesmo ID para permitir edição sem duplicar
+    // FALLBACK LOCAL: Usa findIndex para editar, evitando push() duplicado!
     let items = this._getLocalItems();
     const index = items.findIndex(i => i.id === recordId);
     
-    const localRecord = {
-      id: recordId,
-      ...itemData,
-      quantidade: parseInt(itemData.quantidade) || 1,
-      baixado: itemData.baixado || false,
-      transferido: itemData.transferido || false,
-      isSynced: false
-    };
+    const localRecord = { ...record, isSynced: false };
 
     if (index !== -1) {
       items[index] = localRecord;
@@ -160,7 +157,8 @@ export const DataManager = {
     }));
 
     try {
-      const res = await fetch(`${cfg.apiUrl}/rest/v1/patrimonios`, {
+      // Usa on_conflict=id explícito na URL para garantir o comportamento UPSERT e não duplicar registros na Nuvem
+      const res = await fetch(`${cfg.apiUrl}/rest/v1/patrimonios?on_conflict=id`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

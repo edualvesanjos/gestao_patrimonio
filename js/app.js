@@ -221,6 +221,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function checkAuthAndRender() {
     const session = AuthManager.getCurrentUser();
 
+    // Verificação de Segurança (Força re-login se o token salvo localmente for PASETO - começou com v4.local...)
+    if (session && session.mode === 'superdb') {
+      if (session.user && session.user.dataPlaneToken && session.user.dataPlaneToken.startsWith('v')) {
+        console.warn("Sessão desatualizada (Token PASETO detectado). Forçando re-login para obter JWT do Data-Plane.");
+        AuthManager.logout();
+        return;
+      }
+    }
+
     if (session && session.user) {
       authScreen.classList.remove('active');
       appScreen.classList.add('active');
