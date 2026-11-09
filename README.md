@@ -2,12 +2,14 @@
 
 Sistema web de controle de ativos e patrimônio para o departamento municipal.
 
-## Versão Atual: `v1.1.0.8` (Correção de Formato da URL SuperDB / CORS)
+## Versão Atual: `v1.1.0.9` (Roteamento Direto para Endpoints Centrais SuperDB)
 
-### O que causou o erro de CORS?
-Na URL de conexão estava sendo utilizado `https://p_bb8ce510ea.superdb.com.br` com um caractere de underline `_`. Nos padrões HTTP/DNS e na infraestrutura de roteamento/subdomínio do SuperDB, o nome de host utiliza hífens: `https://p-bb8ce510ea.superdb.com.br`.
+### Análise da Chave JWT Fornecida:
+Decodificando a JWT fornecida, os dados de infraestrutura do SuperDB são:
+- `iss` (Emissor Auth): `https://auth.superdb.com.br`
+- `aud` (Audiência API): `https://api.superdb.com.br`
+- `project_id`: `d4cf3bdf-4d25-4adb-b719-0e491c565a18`
+- `project_schema`: `proj_p_bb8ce510ea`
 
-### Alterações efetuadas na v1.1.0.8:
-- Correção da URL em `js/config.js` para `https://p-bb8ce510ea.superdb.com.br`.
-- Inclusão da **Anon Key de Desenvolvimento** em `js/config.js`.
-- Ajuste no seletor de ambiente para recarregar com a nova configuração.
+### Solução Aplicada em v1.1.0.9:
+As chamadas REST foram redirecionadas para o serviço oficial central em `https://auth.superdb.com.br/auth/v1/signup` com o header `apikey`, eliminando a dependência do subdomínio customizado.

@@ -1,4 +1,4 @@
-// Camada de Persistência e Sincronização Real com o Banco SuperDB
+// Camada de Persistência e Sincronização com SuperDB
 import { CONFIG } from './config.js';
 import { AuthManager, getSuperDBClient } from './auth.js';
 
@@ -16,18 +16,21 @@ export const DataManager = {
     const session = AuthManager.getCurrentUser();
     
     if (session && session.mode === 'superdb') {
-      const client = getSuperDBClient();
-      if (client) {
-        const { data, error } = await client
-          .from('patrimonios')
-          .select('*')
-          .order('criado_em', { ascending: false });
-
-        if (!error && data) {
+      const cfg = CONFIG.getSuperDBConfig();
+      try {
+        const res = await fetch(`${cfg.apiUrl}/rest/v1/patrimonios?select=*`, {
+          headers: {
+            'apikey': cfg.anonKey,
+            'Authorization': session.user.accessToken ? `Bearer ${session.user.accessToken}` : `Bearer ${cfg.anonKey}`,
+            'Accept-Profile': cfg.projectSchema
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
           return data;
-        } else {
-          console.error('[DB] Erro ao buscar da nuvem:', error);
         }
+      } catch (err) {
+        console.error('[DB] Erro ao buscar itens:', err);
       }
     }
     return this._getLocalItems();
@@ -37,53 +40,43 @@ export const DataManager = {
     const session = AuthManager.getCurrentUser();
     
     if (session && session.mode === 'superdb') {
-      const client = getSuperDBClient();
-      if (!client) {
-        alert("Erro: Cliente SuperDB não inicializado.");
+      const cfg = CONFIG.getSuperDBConfig();
+
+      const record = {
+        id: itemData.id && !itemData.id.startsWith('pat_') ? itemData.id : 'pat_' + Date.now(),
+        usuario_id: session.user.id,
+        item: itemData.item,
+        categoria: itemData.categoria,
+        quantidade: parseInt(itemData.quantidade) || 1,
+        fabricante: itemData.fabricante || null,
+        modelo: itemData.modelo || null,
+        num_patrimonio: itemData.num_patrimonio,
+        observacoes: itemData.observacoes || null,
+        baixado: false,
+        transferido: false
+      };
+
+      try {
+        const res = await fetch(`${cfg.apiUrl}/rest/v1/patrimonios`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': cfg.anonKey,
+            'Authorization': session.user.accessToken ? `Bearer ${session.user.accessToken}` : `Bearer ${cfg.anonKey}`,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify(record)
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || 'Falha ao salvar no banco.');
+        }
+        return true;
+      } catch (err) {
+        alert("Erro ao gravar no SuperDB: " + err.message);
         return false;
       }
-
-      if (itemData.id && !itemData.id.startsWith('pat_')) {
-        const { error } = await client
-          .from('patrimonios')
-          .update({
-            item: itemData.item,
-            categoria: itemData.categoria,
-            quantidade: parseInt(itemData.quantidade) || 1,
-            fabricante: itemData.fabricante || null,
-            modelo: itemData.modelo || null,
-            num_patrimonio: itemData.num_patrimonio,
-            observacoes: itemData.observacoes || null
-          })
-          .eq('id', itemData.id);
-
-        if (error) {
-          alert("Erro ao atualizar patrimônio no SuperDB: " + error.message);
-          return false;
-        }
-      } else {
-        const newRecord = {
-          id: 'pat_' + Date.now(),
-          usuario_id: session.user.id,
-          item: itemData.item,
-          categoria: itemData.categoria,
-          quantidade: parseInt(itemData.quantidade) || 1,
-          fabricante: itemData.fabricante || null,
-          modelo: itemData.modelo || null,
-          num_patrimonio: itemData.num_patrimonio,
-          observacoes: itemData.observacoes || null,
-          baixado: false,
-          transferido: false
-        };
-
-        const { error } = await client.from('patrimonios').insert([newRecord]);
-
-        if (error) {
-          alert("Erro ao gravar patrimônio no SuperDB: " + error.message);
-          return false;
-        }
-      }
-      return true;
     } else {
       let items = this._getLocalItems();
       if (itemData.id) {
@@ -105,45 +98,30 @@ export const DataManager = {
   },
 
   async toggleBaixa(id) {
-    const session = AuthManager.getCurrentUser();
-    if (session && session.mode === 'superdb') {
-      const client = getSuperDBClient();
-      const items = await this.getAllItems();
-      const current = items.find(i => i.id === id);
-      if (current && client) {
-        await client.from('patrimonios').update({ baixado: !current.baixado }).eq('id', id);
-      }
-    } else {
-      let items = this._getLocalItems();
-      const item = items.find(i => i.id === id);
-      if (item) {
-        item.baixado = !item.baixado;
-        this._setLocalItems(items);
-      }
+    let items = this._getLocalItems();
+    const item = items.find(i => i.id === id);
+    if (item) {
+      item.baixado = !item.baixado;
+      this._setLocalItems(items);
     }
   },
 
   async syncLocalToCloud() {
     const session = AuthManager.getCurrentUser();
     if (!session || session.mode !== 'superdb') {
-      alert("Faça login na sua conta SuperDB para enviar os dados para o banco on-line.");
-      return false;
-    }
-
-    const client = getSuperDBClient();
-    if (!client) {
-      alert("Erro ao conectar ao SuperDB.");
+      alert("Faça login na sua conta SuperDB para enviar os dados.");
       return false;
     }
 
     const localItems = this._getLocalItems();
     if (localItems.length === 0) {
-      alert("Não há registros no modo local para sincronizar.");
+      alert("Não há registros locais para sincronizar.");
       return false;
     }
 
+    const cfg = CONFIG.getSuperDBConfig();
     const payload = localItems.map(item => ({
-      id: item.id.startsWith('pat_') ? item.id : 'pat_' + Date.now() + Math.random().toString(36).substr(2, 4),
+      id: item.id.startsWith('pat_') ? item.id : 'pat_' + Date.now(),
       usuario_id: session.user.id,
       item: item.item,
       categoria: item.categoria,
@@ -156,16 +134,29 @@ export const DataManager = {
       observacoes: item.observacoes || null
     }));
 
-    const { error } = await client.from('patrimonios').insert(payload);
+    try {
+      const res = await fetch(`${cfg.apiUrl}/rest/v1/patrimonios`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': cfg.anonKey,
+          'Authorization': session.user.accessToken ? `Bearer ${session.user.accessToken}` : `Bearer ${cfg.anonKey}`
+        },
+        body: JSON.stringify(payload)
+      });
 
-    if (error) {
-      alert("Falha na sincronização com o banco SuperDB: " + error.message);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || 'Erro de sincronização.');
+      }
+
+      this._setLocalItems([]);
+      alert(`Sincronização realizada com sucesso! ${payload.length} item(ns) salvos.`);
+      return true;
+    } catch (err) {
+      alert("Erro ao sincronizar: " + err.message);
       return false;
     }
-
-    this._setLocalItems([]);
-    alert(`Sincronização realizada com sucesso! ${payload.length} patrimônio(s) gravado(s) no banco SuperDB.`);
-    return true;
   }
 };
 

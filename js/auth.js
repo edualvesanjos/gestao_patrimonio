@@ -1,4 +1,4 @@
-// Gerenciador de Autenticação com cliente SuperDB Real
+// Gerenciador de Autenticação com cliente SuperDB
 import { CONFIG } from './config.js';
 
 let superdbClient = null;
@@ -6,7 +6,17 @@ let superdbClient = null;
 export function getSuperDBClient() {
   const cfg = CONFIG.getSuperDBConfig();
   if (!superdbClient && window.supabase) {
-    superdbClient = window.supabase.createClient(cfg.url, cfg.anonKey);
+    // Inicialização informando authUrl e custom headers do schema quando suportado
+    superdbClient = window.supabase.createClient(cfg.authUrl, cfg.anonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false
+      },
+      db: {
+        schema: cfg.projectSchema
+      }
+    });
   }
   return superdbClient;
 }
@@ -32,23 +42,34 @@ export const AuthManager = {
     try {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
-      const client = getSuperDBClient();
-      if (!client) throw new Error("Cliente SuperDB não inicializado.");
+      const cfg = CONFIG.getSuperDBConfig();
 
-      const { data, error } = await client.auth.signInWithPassword({ email, password });
-      
-      if (error) throw error;
-      if (!data || !data.user) throw new Error("Usuário não retornado.");
+      // Chamada HTTP nativa direta para a API REST do SuperDB Auth caso o client da CDN falhe
+      const res = await fetch(`${cfg.authUrl}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': cfg.anonKey
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const responseData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(responseData.msg || responseData.error_description || responseData.message || 'Falha na autenticação.');
+      }
 
       const user = {
-        id: data.user.id,
-        name: data.user.email.split('@')[0],
-        email: data.user.email
+        id: responseData.user ? responseData.user.id : 'usr_' + Date.now(),
+        name: email.split('@')[0],
+        email: email,
+        accessToken: responseData.access_token
       };
       
       return this.setSession(user, 'superdb');
     } catch (err) {
-      alert("Erro ao realizar login via SuperDB: " + err.message);
+      alert("Erro ao realizar login no SuperDB: " + err.message);
       return null;
     }
   },
@@ -57,24 +78,32 @@ export const AuthManager = {
     try {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
-      const client = getSuperDBClient();
-      if (!client) throw new Error("Cliente SuperDB não inicializado.");
+      const cfg = CONFIG.getSuperDBConfig();
+      console.log(`[AUTH] Solicitando cadastro direto em: ${cfg.authUrl}/auth/v1/signup`);
 
-      const { data, error } = await client.auth.signUp({ email, password });
+      // Requisição REST nativa ao endpoint do SuperDB Auth informado na JWT (https://auth.superdb.com.br)
+      const res = await fetch(`${cfg.authUrl}/auth/v1/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': cfg.anonKey
+        },
+        body: JSON.stringify({ email, password })
+      });
 
-      if (error) throw error;
-      
-      if (!data || !data.user) {
-        throw new Error("Erro no registro. Verifique a confirmação de e-mail ou se o usuário já existe.");
+      const responseData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(responseData.msg || responseData.error_description || responseData.message || 'Erro ao criar conta no servidor SuperDB.');
       }
 
       const user = { 
-        id: data.user.id,
-        name: data.user.email.split('@')[0],
-        email: data.user.email 
+        id: responseData.user ? responseData.user.id : (responseData.id || 'usr_' + Date.now()),
+        name: email.split('@')[0],
+        email: email 
       };
 
-      alert(`Usuário registrado com sucesso no SuperDB!`);
+      alert(`Conta criada com sucesso no SuperDB!`);
       return this.setSession(user, 'superdb');
     } catch (err) {
       alert("Erro ao cadastrar usuário via SuperDB: " + err.message);
@@ -92,10 +121,6 @@ export const AuthManager = {
   },
 
   async logout() {
-    const client = getSuperDBClient();
-    if (client) {
-      await client.auth.signOut().catch(() => {});
-    }
     localStorage.removeItem(CONFIG.STORAGE_KEYS.USER_SESSION);
     window.location.reload();
   }
