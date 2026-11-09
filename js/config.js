@@ -2,7 +2,7 @@
 
 export const CONFIG = {
   APP_NAME: 'Patrimônio Atibaia',
-  VERSION: '1.0.1.1', // Formato x.x.x.x para versão de correção/patch
+  VERSION: '1.1.0', // Versão 1.1.0 - Módulo CRUD de Patrimônio
   
   ENV_KEY: 'patrimonio_env_mode',
 

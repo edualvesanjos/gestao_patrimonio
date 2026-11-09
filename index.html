@@ -60,7 +60,6 @@
 
       <div class="divider">ou</div>
 
-      <!-- Opção de Acesso Local / Convidado -->
       <button id="btn-guest" class="btn btn-secondary">
         Usar Modo Local (Sem Cadastro)
       </button>
@@ -71,7 +70,7 @@
     </div>
   </div>
 
-  <!-- Tela Principal da Aplicação (Layout Base) -->
+  <!-- Tela Principal da Aplicação -->
   <div id="app-screen" class="screen">
     <header class="app-header">
       <div class="header-brand">
@@ -86,34 +85,120 @@
     </header>
 
     <main class="app-content">
-      <section class="welcome-box">
-        <h2>Painel Principal de Ativos</h2>
-        <p>A estrutura v1.0.1.1 está configurada com suporte ao package.json e dev server (Vite).</p>
-        
-        <div class="status-cards">
-          <div class="card">
-            <h3>Modo de Banco</h3>
-            <p id="current-db-mode">-</p>
-          </div>
-          <div class="card">
-            <h3>Ambiente Ativo</h3>
-            <p id="current-env-display">-</p>
-          </div>
-          <div class="card">
-            <h3>Usuário Conectado</h3>
-            <p id="current-user-email">-</p>
-          </div>
+      <!-- Ações do Topo -->
+      <div class="action-bar">
+        <h2>Controle de Ativos Patrimoniais</h2>
+        <button id="btn-open-modal" class="btn btn-primary">+ Novo Item</button>
+      </div>
+
+      <!-- Resumo Rápido -->
+      <div class="status-cards">
+        <div class="card">
+          <h3>Total de Itens</h3>
+          <p id="total-count">0</p>
         </div>
+        <div class="card">
+          <h3>Qtd. Em Estoque</h3>
+          <p id="total-qty">0</p>
+        </div>
+        <div class="card">
+          <h3>Ativos Cadastrados</h3>
+          <p id="active-count">0</p>
+        </div>
+        <div class="card">
+          <h3>Baixados</h3>
+          <p id="baixados-count">0</p>
+        </div>
+      </div>
+
+      <!-- Tabela de Patrimônios -->
+      <section class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Patrimônio</th>
+              <th>Item</th>
+              <th>Categoria</th>
+              <th>Qtd</th>
+              <th>Fabricante / Modelo</th>
+              <th>Status</th>
+              <th>Observações</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="items-table-body">
+            <tr>
+              <td colspan="8" class="text-center">Carregando patrimônios...</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
     </main>
   </div>
 
+  <!-- Modal Cadastro / Edição -->
+  <div id="item-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">Novo Item de Patrimônio</h3>
+        <button id="btn-close-modal" class="close-btn">&times;</button>
+      </div>
+      <form id="form-item">
+        <input type="hidden" id="item-id" />
+        
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="input-item">Item *</label>
+            <input type="text" id="input-item" placeholder="Ex: Monitor 24 Polegadas" required />
+          </div>
+          <div class="form-group flex-1">
+            <label for="input-num-patrimonio">Nº Patrimônio *</label>
+            <input type="text" id="input-num-patrimonio" placeholder="Ex: PAT-2026-001" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="input-categoria">Categoria *</label>
+            <input type="text" id="input-categoria" placeholder="Ex: Informática, Mobiliário" required />
+          </div>
+          <div class="form-group flex-1">
+            <label for="input-quantidade">Quantidade *</label>
+            <input type="number" id="input-quantidade" min="1" value="1" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="input-fabricante">Fabricante</label>
+            <input type="text" id="input-fabricante" placeholder="Ex: Dell, HP, Flexform" />
+          </div>
+          <div class="form-group flex-1">
+            <label for="input-modelo">Modelo</label>
+            <input type="text" id="input-modelo" placeholder="Ex: P2419H" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="input-observacoes">Observações</label>
+          <textarea id="input-observacoes" rows="3" placeholder="Localização física, avarias, detalhes de garantia..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-cancel-modal" class="btn btn-secondary">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Ativo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <footer class="app-version-footer">
-    <small>Versão <span id="app-version-display">v1.0.1.1</span> | Prefeitura de Atibaia</small>
+    <small>Versão <span id="app-version-display">v1.1.0</span> | Prefeitura de Atibaia</small>
   </footer>
 
   <script type="module" src="js/config.js"></script>
   <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/db.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-// Gerenciador de Autenticação Dual (SuperDB + Local Storage) com Suporte a Ambientes
+// Gerenciador de Autenticação Dual (SuperDB + Local Storage)
 import { CONFIG } from './config.js';
 
 export const AuthManager = {
@@ -24,7 +24,6 @@ export const AuthManager = {
 
       const activeEnv = CONFIG.getSuperDBConfig();
       console.log(`[AUTH] Conectando ao SuperDB (${activeEnv.name}) na URL: ${activeEnv.apiUrl}`);
-      console.log(`[AUTH] Utilizando API Key: ${activeEnv.apiKey}`);
 
       const user = {
         name: email.split('@')[0],

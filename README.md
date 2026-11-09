@@ -2,25 +2,17 @@
 
 Sistema web de controle de ativos e patrimônio para o departamento municipal.
 
-## Versão Atual: `v1.0.1.1` (Patch Fix)
+## Versão Atual: `v1.1.0` (Módulo CRUD de Patrimônio)
 
-### Comandos de Execução Local (StackBlitz / Node.js)
+### O que há de novo na v1.1.0:
+- **Formulário de Cadastro/Edição de Ativos**: Modal interativo com suporte a todos os campos (`Item`, `Número do Patrimônio`, `Categoria`, `Quantidade`, `Fabricante`, `Modelo` e `Observações`).
+- **Tabela Responsiva de Ativos**: Exibição centralizada com badges de status (`Ativo`, `Baixado` e `Transferido`).
+- **Persistência Híbrida (`js/db.js`)**: Operações de CRUD prontas para LocalStorage e abstraídas para conexão de API com o SuperDB.
+- **Ações Rápidas**: Edição em tempo real e alternância com 1 clique de baixa/reativação do ativo.
+- **Cards de Estatísticas**: Indicadores em tempo real do total de patrimônios, quantidade física em estoque, reativos e baixados.
+
+### Comandos para Executar Localmente
 ```bash
-# Instalar dependências (Vite)
 npm install
-
-# Iniciar servidor de desenvolvimento
 npm run dev
-
-# Gerar build estático para GitHub Pages
-npm run build
 ```
-
-### Regras de Versionamento Semantic Versioning (SemVer)
-- **`x.x.x`** (Ex: `1.0.1`, `1.1.0`): Lançamento de novas funcionalidades ou frentes de módulo.
-- **`x.x.x.x`** (Ex: `1.0.1.1`): Correções pontuais, patches de execução ou scripts do projeto.
-
-### Troca de Ambientes (DEV vs RELEASE)
-O projeto conta com alternância de chaves API no arquivo `js/config.js`:
-- **DEV**: Aponta para o ambiente de testes do SuperDB.
-- **RELEASE**: Aponta para o ambiente de produção oficial do SuperDB.
