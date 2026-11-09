@@ -6,12 +6,17 @@ let superdbClient = null;
 export function getSuperDBClient() {
   const cfg = CONFIG.getSuperDBConfig();
   if (!superdbClient && window.supabase) {
-    // Inicialização informando authUrl e custom headers do schema quando suportado
     superdbClient = window.supabase.createClient(cfg.authUrl, cfg.anonKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false
+      },
+      global: {
+        headers: {
+          'X-SuperDB-Project': cfg.projectSlug,
+          'apikey': cfg.anonKey
+        }
       },
       db: {
         schema: cfg.projectSchema
@@ -44,12 +49,12 @@ export const AuthManager = {
 
       const cfg = CONFIG.getSuperDBConfig();
 
-      // Chamada HTTP nativa direta para a API REST do SuperDB Auth caso o client da CDN falhe
       const res = await fetch(`${cfg.authUrl}/auth/v1/token?grant_type=password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': cfg.anonKey
+          'apikey': cfg.anonKey,
+          'X-SuperDB-Project': cfg.projectSlug
         },
         body: JSON.stringify({ email, password })
       });
@@ -79,14 +84,14 @@ export const AuthManager = {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
       const cfg = CONFIG.getSuperDBConfig();
-      console.log(`[AUTH] Solicitando cadastro direto em: ${cfg.authUrl}/auth/v1/signup`);
+      console.log(`[AUTH] Enviando cabeçalho X-SuperDB-Project: ${cfg.projectSlug}`);
 
-      // Requisição REST nativa ao endpoint do SuperDB Auth informado na JWT (https://auth.superdb.com.br)
       const res = await fetch(`${cfg.authUrl}/auth/v1/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': cfg.anonKey
+          'apikey': cfg.anonKey,
+          'X-SuperDB-Project': cfg.projectSlug
         },
         body: JSON.stringify({ email, password })
       });

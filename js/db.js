@@ -22,6 +22,7 @@ export const DataManager = {
           headers: {
             'apikey': cfg.anonKey,
             'Authorization': session.user.accessToken ? `Bearer ${session.user.accessToken}` : `Bearer ${cfg.anonKey}`,
+            'X-SuperDB-Project': cfg.projectSlug,
             'Accept-Profile': cfg.projectSchema
           }
         });
@@ -63,6 +64,7 @@ export const DataManager = {
             'Content-Type': 'application/json',
             'apikey': cfg.anonKey,
             'Authorization': session.user.accessToken ? `Bearer ${session.user.accessToken}` : `Bearer ${cfg.anonKey}`,
+            'X-SuperDB-Project': cfg.projectSlug,
             'Prefer': 'return=minimal'
           },
           body: JSON.stringify(record)
@@ -140,7 +142,8 @@ export const DataManager = {
         headers: {
           'Content-Type': 'application/json',
           'apikey': cfg.anonKey,
-          'Authorization': session.user.accessToken ? `Bearer ${session.user.accessToken}` : `Bearer ${cfg.anonKey}`
+          'Authorization': session.user.accessToken ? `Bearer ${session.user.accessToken}` : `Bearer ${cfg.anonKey}`,
+          'X-SuperDB-Project': cfg.projectSlug
         },
         body: JSON.stringify(payload)
       });
