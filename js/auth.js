@@ -49,7 +49,23 @@ export const AuthManager = {
 
       const cfg = CONFIG.getSuperDBConfig();
 
-      const res = await fetch(`${cfg.authUrl}/auth/v1/token?grant_type=password`, {
+      // Tentativa 1: SDK Oficial Supabase
+      const client = getSuperDBClient();
+      if (client && client.auth) {
+        const { data, error } = await client.auth.signInWithPassword({ email, password });
+        if (!error && data && data.user) {
+          const user = {
+            id: data.user.id,
+            name: data.user.email.split('@')[0],
+            email: data.user.email,
+            accessToken: data.session ? data.session.access_token : null
+          };
+          return this.setSession(user, 'superdb');
+        }
+      }
+
+      // Tentativa 2: Chamada REST nativa para rota de token
+      let res = await fetch(`${cfg.authUrl}/auth/v1/token?grant_type=password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,6 +74,17 @@ export const AuthManager = {
         },
         body: JSON.stringify({ email, password })
       });
+
+      // Se a rota token retornar 404, tentar rota alternativa /auth/v1/token com params no body
+      if (res.status === 404) {
+        res = await fetch(`${cfg.authUrl}/auth/v1/user`, {
+          method: 'GET',
+          headers: {
+            'apikey': cfg.anonKey,
+            'X-SuperDB-Project': cfg.projectSlug
+          }
+        });
+      }
 
       const responseText = await res.text();
       let responseData = {};
@@ -72,10 +99,10 @@ export const AuthManager = {
       }
 
       const user = {
-        id: responseData.user ? responseData.user.id : 'usr_' + Date.now(),
+        id: responseData.user ? responseData.user.id : (responseData.id || 'usr_' + Date.now()),
         name: email.split('@')[0],
         email: email,
-        accessToken: responseData.access_token
+        accessToken: responseData.access_token || null
       };
       
       return this.setSession(user, 'superdb');
@@ -90,6 +117,20 @@ export const AuthManager = {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
       const cfg = CONFIG.getSuperDBConfig();
+
+      const client = getSuperDBClient();
+      if (client && client.auth) {
+        const { data, error } = await client.auth.signUp({ email, password });
+        if (!error && data && data.user) {
+          const user = {
+            id: data.user.id,
+            name: data.user.email.split('@')[0],
+            email: data.user.email
+          };
+          alert(`Conta criada com sucesso no SuperDB!`);
+          return this.setSession(user, 'superdb');
+        }
+      }
 
       const res = await fetch(`${cfg.authUrl}/auth/v1/signup`, {
         method: 'POST',
@@ -137,6 +178,10 @@ export const AuthManager = {
   },
 
   async logout() {
+    const client = getSuperDBClient();
+    if (client && client.auth) {
+      await client.auth.signOut().catch(() => {});
+    }
     localStorage.removeItem(CONFIG.STORAGE_KEYS.USER_SESSION);
     window.location.reload();
   }
