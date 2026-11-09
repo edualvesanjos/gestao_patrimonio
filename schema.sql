@@ -1,7 +1,7 @@
 -- ============================================================
 -- SCRIPT DE ESTRUTURA E RLS COM TYPE CAST (SuperDB Auth)
 -- Projeto: Gestão de Patrimônio - Prefeitura da Estância de Atibaia
--- Versão do Schema: 1.1.0.15
+-- Versão do Schema: 1.1.0.16
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS patrimonios (

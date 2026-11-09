@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   async function loadItemsTable() {
-    itemsTableBody.innerHTML = `<tr><td colspan="8" class="text-center">Consultando banco de dados...</td></tr>`;
+    itemsTableBody.innerHTML = `<tr><td colspan="9" class="text-center">Consultando banco de dados...</td></tr>`;
     
     const items = await DataManager.getAllItems();
 
@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (items.length === 0) {
       itemsTableBody.innerHTML = `
         <tr>
-          <td colspan="8" class="text-center" style="padding: 24px; color: #777;">
+          <td colspan="9" class="text-center" style="padding: 24px; color: #777;">
             Nenhum patrimônio cadastrado neste ambiente. Clique em <strong>"+ Novo Item"</strong> para começar.
           </td>
         </tr>`;
@@ -170,8 +170,14 @@ document.addEventListener('DOMContentLoaded', () => {
               ? '<span class="status-tag status-transferido">Transferido</span>' 
               : '<span class="status-tag status-ativo">Ativo</span>');
 
+        // Indicador de Origem / Sincronização
+        let syncBadge = item.isSynced
+          ? '<span class="sync-badge sync-badge-cloud" title="Sincronizado no Banco de Dados SuperDB">☁️ Nuvem</span>'
+          : '<span class="sync-badge sync-badge-local" title="Salvo Apenas Neste Navegador (Pendente de Sincronização)">💻 Local</span>';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
+          <td>${syncBadge}</td>
           <td><strong>${item.num_patrimonio}</strong></td>
           <td>${item.item}</td>
           <td>${item.categoria}</td>

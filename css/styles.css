@@ -167,6 +167,18 @@ body {
 .status-baixado { background: #fbe9e7; color: #c62828; }
 .status-transferido { background: #e3f2fd; color: #1565c0; }
 
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.sync-badge-cloud { background-color: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
+.sync-badge-local { background-color: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
+
 .actions-cell { display: flex; gap: 6px; }
 
 .modal-backdrop {

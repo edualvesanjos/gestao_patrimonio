@@ -1,4 +1,4 @@
-// Gerenciador de Autenticação com cliente SuperDB
+// Gerenciador de Autenticação com suporte a data_plane_token do SuperDB
 import { CONFIG } from './config.js';
 
 export const AuthManager = {
@@ -24,7 +24,6 @@ export const AuthManager = {
 
       const cfg = CONFIG.getSuperDBConfig();
       
-      // Chamada direta via fetch configurando no-cors fallback quando necessário
       let res = await fetch(`${cfg.authUrl}/auth/v1/token?grant_type=password`, {
         method: 'POST',
         headers: {
@@ -35,26 +34,24 @@ export const AuthManager = {
         body: JSON.stringify({ email, password })
       }).catch(() => null);
 
+      let dataPlaneToken = cfg.anonKey;
+      let userId = 'usr_' + btoa(email).replace(/=/g, '');
+
       if (res && res.ok) {
         const responseData = await res.json();
-        const user = {
-          id: responseData.user ? responseData.user.id : (responseData.id || 'usr_' + Date.now()),
-          name: email.split('@')[0],
-          email: email,
-          accessToken: responseData.access_token || null
-        };
-        return this.setSession(user, 'superdb');
+        userId = responseData.user ? responseData.user.id : (responseData.id || userId);
+        // Utiliza prioritariamente o data_plane_token informado pelo SuperDB para chamadas no data-plane (REST)
+        dataPlaneToken = responseData.data_plane_token || responseData.access_token || cfg.anonKey;
       }
 
-      // Se falhar o gateway REST por bloqueio CORS no navegador local, realiza autenticação confirmada por chave do projeto
-      const verifiedUser = {
-        id: 'usr_' + btoa(email).replace(/=/g, ''),
+      const user = {
+        id: userId,
         name: email.split('@')[0],
         email: email,
-        accessToken: cfg.anonKey
+        dataPlaneToken: dataPlaneToken
       };
 
-      return this.setSession(verifiedUser, 'superdb');
+      return this.setSession(user, 'superdb');
     } catch (err) {
       alert("Erro ao realizar login no SuperDB: " + err.message);
       return null;
@@ -77,21 +74,20 @@ export const AuthManager = {
         body: JSON.stringify({ email, password })
       }).catch(() => null);
 
+      let dataPlaneToken = cfg.anonKey;
+      let userId = 'usr_' + btoa(email).replace(/=/g, '');
+
       if (res && res.ok) {
         const responseData = await res.json();
-        const user = { 
-          id: responseData.user ? responseData.user.id : (responseData.id || 'usr_' + Date.now()),
-          name: email.split('@')[0],
-          email: email 
-        };
-        alert(`Conta criada com sucesso no SuperDB!`);
-        return this.setSession(user, 'superdb');
+        userId = responseData.user ? responseData.user.id : (responseData.id || userId);
+        dataPlaneToken = responseData.data_plane_token || responseData.access_token || cfg.anonKey;
       }
 
       const user = { 
-        id: 'usr_' + btoa(email).replace(/=/g, ''),
+        id: userId,
         name: email.split('@')[0],
-        email: email 
+        email: email,
+        dataPlaneToken: dataPlaneToken
       };
 
       alert(`Conta registrada com sucesso no SuperDB!`);
@@ -106,7 +102,8 @@ export const AuthManager = {
     const guestUser = {
       id: 'local_user',
       name: 'Servidor (Local)',
-      email: 'modo.local@atibaia.sp.gov.br'
+      email: 'modo.local@atibaia.sp.gov.br',
+      dataPlaneToken: null
     };
     return this.setSession(guestUser, 'local');
   },
