@@ -23,39 +23,61 @@ export const AuthManager = {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
       const cfg = CONFIG.getSuperDBConfig();
-
-      // Chamada HTTP REST limpa, utilizando apikey e X-SuperDB-Project
-      const res = await fetch(`${cfg.authUrl}/auth/v1/token?grant_type=password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': cfg.anonKey,
-          'X-SuperDB-Project': cfg.projectSlug
-        },
-        body: JSON.stringify({ email, password })
-      });
-
-      const responseText = await res.text();
-      let responseData = {};
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (parseErr) {
-        throw new Error(responseText || "Resposta do servidor em formato inválido.");
-      }
-
-      if (!res.ok) {
-        const errorMsg = responseData.msg || responseData.error_description || responseData.message || 'E-mail ou senha incorretos.';
-        throw new Error(errorMsg);
-      }
-
-      const user = {
-        id: responseData.user ? responseData.user.id : (responseData.id || 'usr_' + Date.now()),
-        name: email.split('@')[0],
-        email: email,
-        accessToken: responseData.access_token || null
-      };
       
-      return this.setSession(user, 'superdb');
+      // Lista de endpoints de autenticação a tentar em ordem
+      const authEndpoints = [
+        `${cfg.apiUrl}/auth/v1/token?grant_type=password`,
+        `${cfg.authUrl}/auth/v1/token?grant_type=password`,
+        `${cfg.apiUrl}/auth/v1/user`
+      ];
+
+      let lastError = "Erro ao conectar com o serviço de autenticação.";
+      let userSession = null;
+
+      for (const endpoint of authEndpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': cfg.anonKey,
+              'X-SuperDB-Project': cfg.projectSlug
+            },
+            body: JSON.stringify({ email, password })
+          });
+
+          if (res.status === 404) continue;
+
+          const responseText = await res.text();
+          let responseData = {};
+          try {
+            responseData = JSON.parse(responseText);
+          } catch (e) {
+            continue;
+          }
+
+          if (res.ok) {
+            const user = {
+              id: responseData.user ? responseData.user.id : (responseData.id || 'usr_' + Date.now()),
+              name: email.split('@')[0],
+              email: email,
+              accessToken: responseData.access_token || null
+            };
+            userSession = this.setSession(user, 'superdb');
+            break;
+          } else {
+            lastError = responseData.msg || responseData.error_description || responseData.message || 'Credenciais inválidas.';
+          }
+        } catch (fetchErr) {
+          console.warn(`[AUTH] Falha ao tentar endpoint: ${endpoint}`, fetchErr);
+        }
+      }
+
+      if (!userSession) {
+        throw new Error(lastError);
+      }
+
+      return userSession;
     } catch (err) {
       alert("Erro ao realizar login no SuperDB: " + err.message);
       return null;
@@ -68,36 +90,58 @@ export const AuthManager = {
 
       const cfg = CONFIG.getSuperDBConfig();
 
-      const res = await fetch(`${cfg.authUrl}/auth/v1/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': cfg.anonKey,
-          'X-SuperDB-Project': cfg.projectSlug
-        },
-        body: JSON.stringify({ email, password })
-      });
+      const registerEndpoints = [
+        `${cfg.apiUrl}/auth/v1/signup`,
+        `${cfg.authUrl}/auth/v1/signup`
+      ];
 
-      const responseText = await res.text();
-      let responseData = {};
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (parseErr) {
-        throw new Error(responseText || "Resposta do servidor em formato inválido.");
+      let lastError = "Erro ao criar conta no SuperDB.";
+      let registeredUser = null;
+
+      for (const endpoint of registerEndpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': cfg.anonKey,
+              'X-SuperDB-Project': cfg.projectSlug
+            },
+            body: JSON.stringify({ email, password })
+          });
+
+          if (res.status === 404) continue;
+
+          const responseText = await res.text();
+          let responseData = {};
+          try {
+            responseData = JSON.parse(responseText);
+          } catch (e) {
+            continue;
+          }
+
+          if (res.ok) {
+            const user = { 
+              id: responseData.user ? responseData.user.id : (responseData.id || 'usr_' + Date.now()),
+              name: email.split('@')[0],
+              email: email 
+            };
+            registeredUser = this.setSession(user, 'superdb');
+            alert(`Conta criada com sucesso no SuperDB!`);
+            break;
+          } else {
+            lastError = responseData.msg || responseData.error_description || responseData.message || 'Erro ao criar conta.';
+          }
+        } catch (fetchErr) {
+          console.warn(`[AUTH] Falha no cadastro via: ${endpoint}`, fetchErr);
+        }
       }
 
-      if (!res.ok) {
-        throw new Error(responseData.msg || responseData.error_description || responseData.message || 'Erro ao criar conta no SuperDB.');
+      if (!registeredUser) {
+        throw new Error(lastError);
       }
 
-      const user = { 
-        id: responseData.user ? responseData.user.id : (responseData.id || 'usr_' + Date.now()),
-        name: email.split('@')[0],
-        email: email 
-      };
-
-      alert(`Conta criada com sucesso no SuperDB!`);
-      return this.setSession(user, 'superdb');
+      return registeredUser;
     } catch (err) {
       alert("Erro ao cadastrar usuário via SuperDB: " + err.message);
       return null;
