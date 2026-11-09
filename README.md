@@ -2,13 +2,14 @@
 
 Sistema web de controle de ativos e patrimônio para o departamento municipal.
 
-## Versão Atual: `v1.1.0.12` (Correção do Erro 404 de Login & Dupla Estratégia de Autenticação)
+## Versão Atual: `v1.1.0.13` (Remoção do Header Incompatível com CORS & Rota HTTP REST Direta)
 
-### Diagnóstico do Erro:
-Conforme demonstrado no painel da imagem, o usuário `eduardo.anjos.trabalho@gmail.com` está cadastrado com sucesso no SuperDB [cite: 16].
-O erro `404 Not Found` no login ocorria porque a requisição REST direta tentava acessar a rota `/auth/v1/token?grant_type=password` no servidor central `auth.superdb.com.br` sem acionar o motor de autenticação da SDK [cite: 15].
+### Diagnóstico do Erro Visualizado na Captura de Tela:
+A consola do navegador exibia:
+`Requisição cross-origin bloqueada: ... (motivo: header 'x-supabase-api-version' não permitido, de acordo com o header 'Access-Control-Allow-Headers' da resposta de comprovação (preflight) do CORS)` [cite: 18]
 
-### Solução Aplicada na v1.1.0.12:
-1. **Priorização da SDK Oficial Supabase (`client.auth.signInWithPassword`)**: O login agora é realizado via SDK oficial já carregada no projeto, enviando os cabeçalhos `X-SuperDB-Project` e `apikey` diretamente na inicialização do cliente.
-2. **Fallback Gracioso para REST**: Mantida a resiliência HTTP com detecção automática de rotas caso o cliente encontre qualquer divergência de endpoint.
-3. **Favicon SVG**: Favicon SVG moderno e atualizado integrado.
+A biblioteca/SDK inseria o cabeçalho `x-supabase-api-version` automaticamente nas requisições preflight do browser, o qual é rejeitado pelo CORS do servidor SuperDB [cite: 18].
+
+### Solução Aplicada em v1.1.0.13:
+1. **Remoção da Inicialização Automática da SDK com Headers Não Autorizados**: As chamadas de Autenticação (`loginSuperDB` e `registerSuperDB`) foram padronizadas para requisições `fetch` REST nativas contendo estritamente os cabeçalhos aceitos pelo servidor (`Content-Type`, `apikey`, `X-SuperDB-Project`) [cite: 18].
+2. **Favicon SVG**: Favicon SVG moderno e atualizado mantido na raiz do projeto.

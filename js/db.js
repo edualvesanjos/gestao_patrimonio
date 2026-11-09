@@ -1,6 +1,6 @@
 // Camada de Persistência e Sincronização com SuperDB
 import { CONFIG } from './config.js';
-import { AuthManager, getSuperDBClient } from './auth.js';
+import { AuthManager } from './auth.js';
 
 export const DataManager = {
   _getLocalItems() {

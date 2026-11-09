@@ -1,31 +1,6 @@
 // Gerenciador de Autenticação com cliente SuperDB
 import { CONFIG } from './config.js';
 
-let superdbClient = null;
-
-export function getSuperDBClient() {
-  const cfg = CONFIG.getSuperDBConfig();
-  if (!superdbClient && window.supabase) {
-    superdbClient = window.supabase.createClient(cfg.authUrl, cfg.anonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false
-      },
-      global: {
-        headers: {
-          'X-SuperDB-Project': cfg.projectSlug,
-          'apikey': cfg.anonKey
-        }
-      },
-      db: {
-        schema: cfg.projectSchema
-      }
-    });
-  }
-  return superdbClient;
-}
-
 export const AuthManager = {
   getCurrentUser() {
     const session = localStorage.getItem(CONFIG.STORAGE_KEYS.USER_SESSION);
@@ -49,23 +24,8 @@ export const AuthManager = {
 
       const cfg = CONFIG.getSuperDBConfig();
 
-      // Tentativa 1: SDK Oficial Supabase
-      const client = getSuperDBClient();
-      if (client && client.auth) {
-        const { data, error } = await client.auth.signInWithPassword({ email, password });
-        if (!error && data && data.user) {
-          const user = {
-            id: data.user.id,
-            name: data.user.email.split('@')[0],
-            email: data.user.email,
-            accessToken: data.session ? data.session.access_token : null
-          };
-          return this.setSession(user, 'superdb');
-        }
-      }
-
-      // Tentativa 2: Chamada REST nativa para rota de token
-      let res = await fetch(`${cfg.authUrl}/auth/v1/token?grant_type=password`, {
+      // Chamada HTTP REST limpa, utilizando apikey e X-SuperDB-Project
+      const res = await fetch(`${cfg.authUrl}/auth/v1/token?grant_type=password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,27 +35,17 @@ export const AuthManager = {
         body: JSON.stringify({ email, password })
       });
 
-      // Se a rota token retornar 404, tentar rota alternativa /auth/v1/token com params no body
-      if (res.status === 404) {
-        res = await fetch(`${cfg.authUrl}/auth/v1/user`, {
-          method: 'GET',
-          headers: {
-            'apikey': cfg.anonKey,
-            'X-SuperDB-Project': cfg.projectSlug
-          }
-        });
-      }
-
       const responseText = await res.text();
       let responseData = {};
       try {
         responseData = JSON.parse(responseText);
       } catch (parseErr) {
-        throw new Error(responseText || "Erro inesperado na resposta do servidor.");
+        throw new Error(responseText || "Resposta do servidor em formato inválido.");
       }
 
       if (!res.ok) {
-        throw new Error(responseData.msg || responseData.error_description || responseData.message || 'Credenciais inválidas ou erro no servidor.');
+        const errorMsg = responseData.msg || responseData.error_description || responseData.message || 'E-mail ou senha incorretos.';
+        throw new Error(errorMsg);
       }
 
       const user = {
@@ -118,20 +68,6 @@ export const AuthManager = {
 
       const cfg = CONFIG.getSuperDBConfig();
 
-      const client = getSuperDBClient();
-      if (client && client.auth) {
-        const { data, error } = await client.auth.signUp({ email, password });
-        if (!error && data && data.user) {
-          const user = {
-            id: data.user.id,
-            name: data.user.email.split('@')[0],
-            email: data.user.email
-          };
-          alert(`Conta criada com sucesso no SuperDB!`);
-          return this.setSession(user, 'superdb');
-        }
-      }
-
       const res = await fetch(`${cfg.authUrl}/auth/v1/signup`, {
         method: 'POST',
         headers: {
@@ -147,11 +83,11 @@ export const AuthManager = {
       try {
         responseData = JSON.parse(responseText);
       } catch (parseErr) {
-        throw new Error(responseText || "Erro inesperado na resposta do servidor.");
+        throw new Error(responseText || "Resposta do servidor em formato inválido.");
       }
 
       if (!res.ok) {
-        throw new Error(responseData.msg || responseData.error_description || responseData.message || 'Erro ao criar conta no servidor SuperDB.');
+        throw new Error(responseData.msg || responseData.error_description || responseData.message || 'Erro ao criar conta no SuperDB.');
       }
 
       const user = { 
@@ -178,10 +114,6 @@ export const AuthManager = {
   },
 
   async logout() {
-    const client = getSuperDBClient();
-    if (client && client.auth) {
-      await client.auth.signOut().catch(() => {});
-    }
     localStorage.removeItem(CONFIG.STORAGE_KEYS.USER_SESSION);
     window.location.reload();
   }
