@@ -28,18 +28,17 @@ export const AuthManager = {
     return sessionData;
   },
 
-  // Login real no SuperDB Auth
   async loginSuperDB(email, password) {
     try {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
       const client = getSuperDBClient();
-      if (!client) throw new Error("Cliente SuperDB não foi inicializado. Verifique a URL e Anon Key no config.js.");
+      if (!client) throw new Error("Cliente SuperDB não inicializado.");
 
       const { data, error } = await client.auth.signInWithPassword({ email, password });
       
       if (error) throw error;
-      if (!data || !data.user) throw new Error("Nenhum usuário retornado na autenticação.");
+      if (!data || !data.user) throw new Error("Usuário não retornado.");
 
       const user = {
         id: data.user.id,
@@ -54,20 +53,19 @@ export const AuthManager = {
     }
   },
 
-  // Cadastro real no SuperDB Auth (superdb.auth.signUp)
   async registerSuperDB(email, password) {
     try {
       if (!email || !password) throw new Error("Preencha todos os campos.");
 
       const client = getSuperDBClient();
-      if (!client) throw new Error("Cliente SuperDB não foi inicializado. Verifique a URL e Anon Key no config.js.");
+      if (!client) throw new Error("Cliente SuperDB não inicializado.");
 
       const { data, error } = await client.auth.signUp({ email, password });
 
       if (error) throw error;
       
       if (!data || !data.user) {
-        throw new Error("Erro na criação da conta. Verifique os logs da API.");
+        throw new Error("Erro no registro. Verifique a confirmação de e-mail ou se o usuário já existe.");
       }
 
       const user = { 
@@ -76,7 +74,7 @@ export const AuthManager = {
         email: data.user.email 
       };
 
-      alert(`Usuário registrado com sucesso no SuperDB! Acesso efetuado.`);
+      alert(`Usuário registrado com sucesso no SuperDB!`);
       return this.setSession(user, 'superdb');
     } catch (err) {
       alert("Erro ao cadastrar usuário via SuperDB: " + err.message);

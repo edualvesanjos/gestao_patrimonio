@@ -2,28 +2,12 @@
 
 Sistema web de controle de ativos e patrimônio para o departamento municipal.
 
-## Versão Atual: `v1.1.0.7` (Integração com SDK do SuperDB)
+## Versão Atual: `v1.1.0.8` (Correção de Formato da URL SuperDB / CORS)
 
-### Por que os dados não estavam subindo para o BD na versão anterior?
-1. O código anterior **apenas simulava a criação da conta e da sessão**, mas não enviava a chamada HTTP de fato para os endpoints da API do SuperDB.
-2. Não havia o cliente oficial instanciado com a **URL da Instância** e a **Anon/Public Key** do projeto.
+### O que causou o erro de CORS?
+Na URL de conexão estava sendo utilizado `https://p_bb8ce510ea.superdb.com.br` com um caractere de underline `_`. Nos padrões HTTP/DNS e na infraestrutura de roteamento/subdomínio do SuperDB, o nome de host utiliza hífens: `https://p-bb8ce510ea.superdb.com.br`.
 
-### O que foi corrigido na v1.1.0.7:
-- Inclusão da biblioteca/SDK oficial do SuperDB (`@supabase/supabase-js`) no `index.html`.
-- Inicialização dinâmica em `js/auth.js` via `createClient(url, anonKey)`.
-- Execução real dos métodos de cadastro (`signUp`), login (`signInWithPassword`) e persistência/sincronização (`from('patrimonios').insert(...)`).
-
-### O que você precisa preencher:
-Edite o arquivo `js/config.js` com a **URL** e a **Anon Key** do seu projeto no SuperDB:
-```javascript
-ENVIRONMENTS: {
-  dev: {
-    url: 'https://p_bb8ce510ea.superdb.com.br',
-    anonKey: 'SUA_ANON_KEY_DEV_AQUI'
-  },
-  release: {
-    url: 'https://p_bb8ce510ea.superdb.com.br',
-    anonKey: 'SUA_ANON_KEY_RELEASE_AQUI'
-  }
-}
-```
+### Alterações efetuadas na v1.1.0.8:
+- Correção da URL em `js/config.js` para `https://p-bb8ce510ea.superdb.com.br`.
+- Inclusão da **Anon Key de Desenvolvimento** em `js/config.js`.
+- Ajuste no seletor de ambiente para recarregar com a nova configuração.

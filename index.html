@@ -19,8 +19,8 @@
         <div class="env-switcher">
           <label for="env-selector">Ambiente API:</label>
           <select id="env-selector" class="env-select">
-            <option value="dev">Desenvolvimento (DEV)</option>
-            <option value="release" selected>Produção (RELEASE)</option>
+            <option value="dev" selected>Desenvolvimento (DEV)</option>
+            <option value="release">Produção (RELEASE)</option>
           </select>
         </div>
       </div>
@@ -77,7 +77,7 @@
       <div class="header-user">
         <span id="user-info-display">Carregando...</span>
         <span id="storage-mode-badge" class="badge">Local</span>
-        <span id="env-mode-badge" class="badge badge-env">RELEASE</span>
+        <span id="env-mode-badge" class="badge badge-env">DEV</span>
         <button id="btn-sync-cloud" class="btn btn-sm btn-sync" title="Sincronizar itens locais para a nuvem SuperDB">☁️ Sincronizar</button>
         <button id="btn-logout" class="btn btn-sm btn-outline">Sair</button>
       </div>
@@ -189,7 +189,7 @@
   </div>
 
   <footer class="app-version-footer">
-    <small>Versão <span id="app-version-display">v1.1.0.7</span> | Prefeitura de Atibaia</small>
+    <small>Versão <span id="app-version-display">v1.1.0.8</span> | Prefeitura de Atibaia</small>
   </footer>
 
   <script type="module" src="js/config.js"></script>

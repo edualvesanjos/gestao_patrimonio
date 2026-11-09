@@ -12,7 +12,6 @@ export const DataManager = {
     localStorage.setItem(CONFIG.STORAGE_KEYS.LOCAL_DATA, JSON.stringify(items));
   },
 
-  // Busca dados diretamente do Banco de Dados SuperDB quando logado em modo 'superdb'
   async getAllItems() {
     const session = AuthManager.getCurrentUser();
     
@@ -34,7 +33,6 @@ export const DataManager = {
     return this._getLocalItems();
   },
 
-  // Salva no Banco de Dados SuperDB ou LocalStorage
   async saveItem(itemData) {
     const session = AuthManager.getCurrentUser();
     
@@ -46,7 +44,6 @@ export const DataManager = {
       }
 
       if (itemData.id && !itemData.id.startsWith('pat_')) {
-        // Atualização no BD
         const { error } = await client
           .from('patrimonios')
           .update({
@@ -65,7 +62,6 @@ export const DataManager = {
           return false;
         }
       } else {
-        // Inserção no BD (O RLS preenche usuario_id com auth.uid() automaticamente se configurado ou enviamos session.user.id)
         const newRecord = {
           id: 'pat_' + Date.now(),
           usuario_id: session.user.id,
@@ -89,7 +85,6 @@ export const DataManager = {
       }
       return true;
     } else {
-      // Modo Local Offline
       let items = this._getLocalItems();
       if (itemData.id) {
         const index = items.findIndex(i => i.id === itemData.id);
@@ -128,7 +123,6 @@ export const DataManager = {
     }
   },
 
-  // Sincronização real: Envia itens criados no modo local para o Banco de Dados SuperDB
   async syncLocalToCloud() {
     const session = AuthManager.getCurrentUser();
     if (!session || session.mode !== 'superdb') {
@@ -148,7 +142,6 @@ export const DataManager = {
       return false;
     }
 
-    // Prepara o array para INSERT no banco
     const payload = localItems.map(item => ({
       id: item.id.startsWith('pat_') ? item.id : 'pat_' + Date.now() + Math.random().toString(36).substr(2, 4),
       usuario_id: session.user.id,
@@ -163,8 +156,6 @@ export const DataManager = {
       observacoes: item.observacoes || null
     }));
 
-    console.log("[SYNC] Enviando payload para o SuperDB:", payload);
-
     const { error } = await client.from('patrimonios').insert(payload);
 
     if (error) {
@@ -172,7 +163,6 @@ export const DataManager = {
       return false;
     }
 
-    // Limpa a fila local após sincronizar com sucesso
     this._setLocalItems([]);
     alert(`Sincronização realizada com sucesso! ${payload.length} patrimônio(s) gravado(s) no banco SuperDB.`);
     return true;

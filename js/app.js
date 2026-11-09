@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadItemsTable();
     } else {
       appScreen.classList.remove('active');
-      authScreen.classList.add('active');
+      authScreen.classList.active;
     }
   }
 
