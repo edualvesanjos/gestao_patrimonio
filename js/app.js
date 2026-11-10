@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         envModeBadge.style.color = '#ffffff';
       }
 
-      if (session.mode === 'superdb') {
+      if (session.mode === 'online') {
         storageModeBadge.textContent = 'Online / PIN desbloqueado';
         storageModeBadge.style.background = '#0056b3';
         if (btnSyncCloud) btnSyncCloud.style.display = 'inline-block';

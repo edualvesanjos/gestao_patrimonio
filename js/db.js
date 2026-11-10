@@ -22,7 +22,8 @@ export const DataManager={
   const s=AuthManager.getCurrentUser();if(!s||!AuthManager.isUnlocked())throw Error('Entre e desbloqueie o armazenamento com PIN.');
   const items=await this._getLocalItems();const existing=items.find(x=>x.id===itemData.id);
   const id=itemData.id||`pat_${crypto.randomUUID()}`;
-  const record={...existing,...itemData,id,usuario_id:s.user.id,_base:existing?._base??(existing?.isSynced?JSON.stringify(clean(existing)):null):null,quantidade:Number.parseInt(itemData.quantidade,10)||1,baixado:itemData.baixado??existing?.baixado??false,transferido:itemData.transferido??existing?.transferido??false,isSynced:false};
+  const base = existing ? (existing._base ?? (existing.isSynced ? JSON.stringify(clean(existing)) : null)) : null;
+  const record={...existing,...itemData,id,usuario_id:s.user.id,_base:base,quantidade:Number.parseInt(itemData.quantidade,10)||1,baixado:itemData.baixado??existing?.baixado??false,transferido:itemData.transferido??existing?.transferido??false,isSynced:false};
   if(!record.item?.trim()||!record.categoria?.trim()||!record.num_patrimonio?.trim())throw Error('Preencha item, categoria e número de patrimônio.');
   const next=items.filter(x=>x.id!==id);next.push(record);await this._setLocalItems(next);
   return {pending:true};

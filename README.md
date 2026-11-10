@@ -1,4 +1,4 @@
-# Gestão de Patrimônio — Atibaia (DEV v1.1.0.18)
+# Gestão de Patrimônio — Atibaia (DEV v1.1.0.19)
 
 ## Instalação e publicação
 
@@ -42,3 +42,9 @@ Esta versão é exclusiva para branch `develop` e SuperDB DEV `p_bb8ce510ea`.
 5. Confirmar no painel SuperDB que o registro foi gravado.
 6. Editar e sincronizar; simular alteração concorrente e confirmar bloqueio.
 7. Validar que nenhum dado é enviado ao ambiente PROD.
+
+## Correção v1.1.0.19
+
+- Reescrita a expressão de versão-base em `js/db.js` para eliminar o erro de parsing do navegador.
+- Corrigida a identificação de sessão online na interface.
+- Mantidas as chaves de armazenamento local da v1.1.0.18 para preservar dados e PIN.
