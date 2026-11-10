@@ -1,4 +1,4 @@
-# Gestão de Patrimônio – Atibaia | DEV v1.1.0.20
+# Gestão de Patrimônio – Atibaia | DEV v1.1.1
 
 ## Objetivo desta versão
 
