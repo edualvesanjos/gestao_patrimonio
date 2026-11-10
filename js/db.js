@@ -1,188 +1,51 @@
-// Camada de Persistência e Sincronização com SuperDB
 import { CONFIG } from './config.js';
 import { AuthManager } from './auth.js';
-
-export const DataManager = {
-  _getLocalItems() {
-    const data = localStorage.getItem(CONFIG.STORAGE_KEYS.LOCAL_DATA);
-    return data ? JSON.parse(data) : [];
-  },
-
-  _setLocalItems(items) {
-    localStorage.setItem(CONFIG.STORAGE_KEYS.LOCAL_DATA, JSON.stringify(items));
-  },
-
-  async getAllItems() {
-    const session = AuthManager.getCurrentUser();
-    let cloudItems = [];
-
-    if (session && session.mode === 'superdb') {
-      const cfg = CONFIG.getSuperDBConfig();
-      const authToken = session.user.dataPlaneToken || cfg.anonKey;
-      try {
-        const res = await fetch(`${cfg.apiUrl}/rest/v1/patrimonios?select=*`, {
-          headers: {
-            'apikey': cfg.anonKey,
-            'Authorization': `Bearer ${authToken}`,
-            'X-SuperDB-Project': cfg.projectSlug,
-            'Accept-Profile': cfg.projectSchema
-          }
-        });
-        if (res.ok) {
-          cloudItems = await res.json();
-          cloudItems = cloudItems.map(item => ({ ...item, isSynced: true }));
-        }
-      } catch (err) {
-        console.warn('[DB] Erro ao consultar itens da nuvem:', err);
-      }
-    }
-
-    const localItems = this._getLocalItems().map(item => ({ ...item, isSynced: false }));
-    
-    // Mesclar itens evitando duplicatas (Nuvem se sobrepõe ao local se houver mesmo ID)
-    const combinedMap = new Map();
-    localItems.forEach(item => combinedMap.set(item.id, item));
-    cloudItems.forEach(item => combinedMap.set(item.id, item));
-
-    return Array.from(combinedMap.values());
-  },
-
-  async saveItem(itemData) {
-    const session = AuthManager.getCurrentUser();
-    const isEdit = !!itemData.id;
-    const recordId = isEdit ? itemData.id : 'pat_' + Date.now();
-
-    const record = {
-      id: recordId,
-      usuario_id: session ? session.user.id : 'local_user',
-      item: itemData.item,
-      categoria: itemData.categoria,
-      quantidade: parseInt(itemData.quantidade) || 1,
-      fabricante: itemData.fabricante || null,
-      modelo: itemData.modelo || null,
-      num_patrimonio: itemData.num_patrimonio,
-      observacoes: itemData.observacoes || null,
-      baixado: itemData.baixado || false,
-      transferido: itemData.transferido || false
-    };
-
-    if (session && session.mode === 'superdb') {
-      const cfg = CONFIG.getSuperDBConfig();
-      const authToken = session.user.dataPlaneToken || cfg.anonKey;
-
-      // Utiliza PATCH para edições e POST para criações
-      const url = isEdit 
-        ? `${cfg.apiUrl}/rest/v1/patrimonios?id=eq.${recordId}` 
-        : `${cfg.apiUrl}/rest/v1/patrimonios`;
-      const method = isEdit ? 'PATCH' : 'POST';
-
-      try {
-        const res = await fetch(url, {
-          method: method,
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': cfg.anonKey,
-            'Authorization': `Bearer ${authToken}`,
-            'X-SuperDB-Project': cfg.projectSlug,
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify(record)
-        });
-
-        if (res.ok) {
-          // Remove a versão local para não duplicar se salvou com sucesso na nuvem
-          let localItems = this._getLocalItems();
-          localItems = localItems.filter(i => i.id !== recordId);
-          this._setLocalItems(localItems);
-          return true;
-        }
-      } catch (err) {
-        console.warn('[DB] Erro de rede ao salvar na nuvem, aplicando fallback local.');
-      }
-    }
-
-    // FALLBACK LOCAL: Usa findIndex para editar, evitando push() duplicado!
-    let items = this._getLocalItems();
-    const index = items.findIndex(i => i.id === recordId);
-    
-    const localRecord = { ...record, isSynced: false };
-
-    if (index !== -1) {
-      items[index] = localRecord;
-    } else {
-      items.push(localRecord);
-    }
-    
-    this._setLocalItems(items);
-    return true;
-  },
-
-  async toggleBaixa(id) {
-    const items = await this.getAllItems();
-    const item = items.find(i => i.id === id);
-    if (item) {
-      item.baixado = !item.baixado;
-      await this.saveItem(item);
-    }
-  },
-
-  async syncLocalToCloud() {
-    const session = AuthManager.getCurrentUser();
-    if (!session || session.mode !== 'superdb') {
-      alert("Faça login no SuperDB para sincronizar com a nuvem.");
-      return false;
-    }
-
-    const localItems = this._getLocalItems();
-    if (localItems.length === 0) {
-      alert("Todos os seus registros já estão sincronizados com o banco de dados SuperDB!");
-      return true;
-    }
-
-    const cfg = CONFIG.getSuperDBConfig();
-    const authToken = session.user.dataPlaneToken || cfg.anonKey;
-
-    const payload = localItems.map(item => ({
-      id: item.id,
-      usuario_id: session.user.id,
-      item: item.item,
-      categoria: item.categoria,
-      quantidade: parseInt(item.quantidade) || 1,
-      fabricante: item.fabricante || null,
-      modelo: item.modelo || null,
-      num_patrimonio: item.num_patrimonio,
-      baixado: item.baixado || false,
-      transferido: item.transferido || false,
-      observacoes: item.observacoes || null
-    }));
-
-    try {
-      // Usa on_conflict=id explícito na URL para garantir o comportamento UPSERT e não duplicar registros na Nuvem
-      const res = await fetch(`${cfg.apiUrl}/rest/v1/patrimonios?on_conflict=id`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': cfg.anonKey,
-          'Authorization': `Bearer ${authToken}`,
-          'X-SuperDB-Project': cfg.projectSlug,
-          'Prefer': 'resolution=merge-duplicates'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || errData.details || 'Falha ao sincronizar registros com a nuvem.');
-      }
-
-      this._setLocalItems([]);
-      alert(`Sincronização concluída com sucesso! ${payload.length} patrimônio(s) enviados para a nuvem.`);
-      return true;
-    } catch (err) {
-      alert("Erro ao sincronizar: " + err.message);
-      return false;
-    }
+const K=CONFIG.STORAGE_KEYS;
+const read=()=>{try{return JSON.parse(localStorage.getItem(K.LOCAL_DATA));}catch{return null;}};
+const errorText=async r=>{const d=await r.json().catch(()=>({}));return d.message||d.details||d.error||`HTTP ${r.status}`;};
+const clean=x=>{const {isSynced,_base,...record}=x;return record;};
+const headers=()=>{const s=AuthManager.getCurrentUser(),c=CONFIG.getSuperDBConfig();if(!s?.token)throw Error('É necessário autenticar online para sincronizar.');return {'apikey':c.anonKey,'Authorization':`Bearer ${s.token}`,'X-SuperDB-Project':c.projectSlug,'Accept-Profile':c.projectSchema,'Content-Profile':c.projectSchema};};
+export const DataManager={
+ async _getLocalItems(){return AuthManager.decryptData(read());},
+ async _setLocalItems(items){localStorage.setItem(K.LOCAL_DATA,JSON.stringify(await AuthManager.encryptData(items)));},
+ async _cloud(){const c=CONFIG.getSuperDBConfig();const r=await fetch(`${c.apiUrl}/rest/v1/patrimonios?select=*`,{headers:headers()});if(!r.ok)throw Error(await errorText(r));return r.json();},
+ async getAllItems(){
+  const local=await this._getLocalItems();let cloud=[];
+  if(AuthManager.getCurrentUser()?.token&&navigator.onLine){try{cloud=await this._cloud();}catch(e){console.warn('Consulta nuvem indisponível:',e.message);}}
+  const map=new Map(cloud.map(x=>[x.id,{...x,isSynced:true}]));
+  for(const item of local)map.set(item.id,item); // alterações pendentes sempre prevalecem na interface
+  // Cache de dados remotos somente após download bem-sucedido; não descarta pendências.
+  if(cloud.length){const pending=local.filter(x=>!x.isSynced);await this._setLocalItems([...cloud.map(x=>({...x,isSynced:true})),...pending.filter(x=>!cloud.some(c=>c.id===x.id))].map(x=>pending.find(p=>p.id===x.id)||x));}
+  return [...map.values()];
+ },
+ async saveItem(itemData){
+  const s=AuthManager.getCurrentUser();if(!s||!AuthManager.isUnlocked())throw Error('Entre e desbloqueie o armazenamento com PIN.');
+  const items=await this._getLocalItems();const existing=items.find(x=>x.id===itemData.id);
+  const id=itemData.id||`pat_${crypto.randomUUID()}`;
+  const record={...existing,...itemData,id,usuario_id:s.user.id,_base:existing?._base??(existing?.isSynced?JSON.stringify(clean(existing)):null):null,quantidade:Number.parseInt(itemData.quantidade,10)||1,baixado:itemData.baixado??existing?.baixado??false,transferido:itemData.transferido??existing?.transferido??false,isSynced:false};
+  if(!record.item?.trim()||!record.categoria?.trim()||!record.num_patrimonio?.trim())throw Error('Preencha item, categoria e número de patrimônio.');
+  const next=items.filter(x=>x.id!==id);next.push(record);await this._setLocalItems(next);
+  return {pending:true};
+ },
+ async toggleBaixa(id){const items=await this.getAllItems();const item=items.find(x=>x.id===id);if(!item)throw Error('Patrimônio não encontrado.');return this.saveItem({...item,baixado:!item.baixado});},
+ async syncLocalToCloud(){
+  const s=AuthManager.getCurrentUser();if(!s?.token)throw Error('Entre online para sincronizar.');
+  const items=await this._getLocalItems();const pending=items.filter(x=>!x.isSynced);
+  if(!pending.length)return {sent:0};
+  const cloud=await this._cloud();const remote=new Map(cloud.map(x=>[x.id,x]));
+  // Bloqueio conservador: não sobrescrever registros existentes sem controle de versão.
+  const conflicts=pending.filter(x=>remote.has(x.id)&&(!x._base || JSON.stringify(clean(remote.get(x.id)))!==x._base));
+  if(conflicts.length)throw Error(`${conflicts.length} registro(s) alterado(s) remotamente ou sem versão-base. A sincronização foi bloqueada para evitar sobrescrita. Nenhum registro foi descartado.`);
+  const c=CONFIG.getSuperDBConfig();let sent=0;
+  for(const item of pending){
+   const record=clean(item);
+   const editing=remote.has(item.id);
+   const url=editing?`${c.apiUrl}/rest/v1/patrimonios?id=eq.${encodeURIComponent(item.id)}`:`${c.apiUrl}/rest/v1/patrimonios`;
+   const r=await fetch(url,{method:editing?'PATCH':'POST',headers:{...headers(),'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(record)});
+   if(!r.ok)throw Error(`Registro ${item.num_patrimonio}: ${await errorText(r)}. ${sent} registro(s) enviados antes da falha; não repita a operação sem conferir o banco.`);
+   item.isSynced=true;delete item._base;await this._setLocalItems(items);sent++;
   }
+  return {sent};
+ }
 };
-
-window.DataManager = DataManager;
+window.DataManager=DataManager;

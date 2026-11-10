@@ -22,13 +22,7 @@
         </div>
         <h2>Gestão de Patrimônio</h2>
         <p>Prefeitura da Estância de Atibaia</p>
-        <div class="env-switcher">
-          <label for="env-selector">Ambiente API:</label>
-          <select id="env-selector" class="env-select">
-            <option value="dev" selected>Desenvolvimento (DEV)</option>
-            <option value="release">Produção (RELEASE)</option>
-          </select>
-        </div>
+        <p class="env-note">Ambiente: DEV (produção desativada)</p>
       </div>
 
       <div class="tabs">
@@ -62,15 +56,15 @@
         <button type="submit" class="btn btn-primary">Criar Conta no SuperDB</button>
       </form>
 
-      <div class="divider">ou</div>
-
-      <button id="btn-guest" class="btn btn-secondary">
-        Usar Modo Local (Sem Cadastro)
-      </button>
-
-      <p class="auth-footer-note">
-        * No modo local, seus dados ficam salvos exclusivamente neste navegador.
-      </p>
+      <div class="offline-access">
+        <h3>Acesso offline protegido</h3>
+        <p>Disponível após login online e criação de PIN neste navegador.</p>
+        <form id="form-offline">
+          <label for="offline-pin">PIN de 6 dígitos</label>
+          <input id="offline-pin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" required />
+          <button type="submit" class="btn btn-secondary">Entrar offline</button>
+        </form>
+      </div>
     </div>
   </div>
 

@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabBtns = document.querySelectorAll('.tab-btn');
   const formLogin = document.getElementById('form-login');
   const formRegister = document.getElementById('form-register');
-  const btnGuest = document.getElementById('btn-guest');
+  const offlineForm = document.getElementById('form-offline');
   const btnLogout = document.getElementById('btn-logout');
   const btnSyncCloud = document.getElementById('btn-sync-cloud');
   const envSelector = document.getElementById('env-selector');
@@ -37,12 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
     appVersionDisplay.textContent = `v${CONFIG.VERSION}`;
   }
 
-  if (envSelector) {
-    envSelector.value = CONFIG.getEnvironment();
-    envSelector.addEventListener('change', (e) => {
-      CONFIG.setEnvironment(e.target.value);
-    });
-  }
 
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -57,25 +51,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   formLogin.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-
-    const session = await AuthManager.loginSuperDB(email, password);
-    if (session) checkAuthAndRender();
+    try {
+      await AuthManager.loginSuperDB(document.getElementById('login-email').value,document.getElementById('login-password').value);
+      if (!AuthManager.hasOfflineProfile()) {
+        const pin=prompt('Crie um PIN local de 6 números para proteger os patrimônios offline:');
+        if (!pin) { AuthManager.logout(); return; }
+        await AuthManager.setupPin(pin);
+      } else {
+        const pin=prompt('Digite o PIN local de 6 números para desbloquear os dados deste dispositivo:');
+        if (!pin) { AuthManager.logout(); return; }
+        await AuthManager.unlock(pin);
+      }
+      checkAuthAndRender();
+    } catch(err) { alert(err.message); }
   });
-
   formRegister.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('reg-email').value;
-    const password = document.getElementById('reg-password').value;
-
-    const session = await AuthManager.registerSuperDB(email, password);
-    if (session) checkAuthAndRender();
+    alert('Cadastro pelo aplicativo temporariamente desativado. Crie usuários pelo painel do SuperDB e faça login.');
   });
-
-  btnGuest.addEventListener('click', () => {
-    AuthManager.loginLocal();
-    checkAuthAndRender();
+  offlineForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await AuthManager.unlock(document.getElementById('offline-pin').value);checkAuthAndRender(); }
+    catch(err) { alert(err.message); }
   });
 
   btnLogout.addEventListener('click', () => {
@@ -84,8 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnSyncCloud) {
     btnSyncCloud.addEventListener('click', async () => {
-      const ok = await DataManager.syncLocalToCloud();
-      if (ok) loadItemsTable();
+      try { const result=await DataManager.syncLocalToCloud(); alert(`${result.sent} registro(s) sincronizados.`); await loadItemsTable(); }
+      catch(err) { alert(`Sincronização não concluída: ${err.message}`); await loadItemsTable(); }
     });
   }
 
@@ -132,17 +129,16 @@ document.addEventListener('DOMContentLoaded', () => {
       observacoes: document.getElementById('input-observacoes').value
     };
 
-    const ok = await DataManager.saveItem(itemData);
-    if (ok) {
-      closeModal();
-      loadItemsTable();
-    }
+    try { await DataManager.saveItem(itemData); closeModal(); await loadItemsTable();alert('Salvo localmente. Aguardando sincronização com o SuperDB.'); }
+    catch(err) { alert(`Não foi possível salvar: ${err.message}`); }
   });
 
   async function loadItemsTable() {
     itemsTableBody.innerHTML = `<tr><td colspan="9" class="text-center">Consultando banco de dados...</td></tr>`;
     
-    const items = await DataManager.getAllItems();
+    let items;
+    try { items = await DataManager.getAllItems(); }
+    catch(err) { itemsTableBody.textContent = `Erro ao ler os dados: ${err.message}`;return; }
 
     let totalCount = items.length;
     let totalQty = 0;
@@ -175,19 +171,20 @@ document.addEventListener('DOMContentLoaded', () => {
           ? '<span class="sync-badge sync-badge-cloud" title="Sincronizado no Banco de Dados SuperDB">☁️ Nuvem</span>'
           : '<span class="sync-badge sync-badge-local" title="Salvo Apenas Neste Navegador (Pendente de Sincronização)">💻 Local</span>';
 
+        const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${syncBadge}</td>
-          <td><strong>${item.num_patrimonio}</strong></td>
-          <td>${item.item}</td>
-          <td>${item.categoria}</td>
-          <td>${item.quantidade}</td>
-          <td>${item.fabricante || '-'} ${item.modelo ? '/ ' + item.modelo : ''}</td>
+          <td><strong>${esc(item.num_patrimonio)}</strong></td>
+          <td>${esc(item.item)}</td>
+          <td>${esc(item.categoria)}</td>
+          <td>${esc(item.quantidade)}</td>
+          <td>${esc(item.fabricante || '-')} ${item.modelo ? '/ ' + esc(item.modelo) : ''}</td>
           <td>${statusBadge}</td>
-          <td>${item.observacoes || '-'}</td>
+          <td>${esc(item.observacoes || '-')}</td>
           <td class="actions-cell">
-            <button class="btn btn-sm btn-secondary btn-edit" data-id="${item.id}">Editar</button>
-            <button class="btn btn-sm ${item.baixado ? 'btn-primary' : 'btn-danger'} btn-baixa" data-id="${item.id}">
+            <button class="btn btn-sm btn-secondary btn-edit" data-id="${esc(item.id)}">Editar</button>
+            <button class="btn btn-sm ${item.baixado ? 'btn-primary' : 'btn-danger'} btn-baixa" data-id="${esc(item.id)}">
               ${item.baixado ? 'Reativar' : 'Baixar'}
             </button>
           </td>
@@ -206,8 +203,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.btn-baixa').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           const id = e.target.getAttribute('data-id');
-          await DataManager.toggleBaixa(id);
-          loadItemsTable();
+          try { await DataManager.toggleBaixa(id); await loadItemsTable(); }
+          catch(err) { alert(err.message); }
         });
       });
     }
@@ -221,16 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function checkAuthAndRender() {
     const session = AuthManager.getCurrentUser();
 
-    // Verificação de Segurança (Força re-login se o token salvo localmente for PASETO - começou com v4.local...)
-    if (session && session.mode === 'superdb') {
-      if (session.user && session.user.dataPlaneToken && session.user.dataPlaneToken.startsWith('v')) {
-        console.warn("Sessão desatualizada (Token PASETO detectado). Forçando re-login para obter JWT do Data-Plane.");
-        AuthManager.logout();
-        return;
-      }
-    }
-
-    if (session && session.user) {
+    if (session && session.user && AuthManager.isUnlocked()) {
       authScreen.classList.remove('active');
       appScreen.classList.add('active');
 
@@ -246,11 +234,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (session.mode === 'superdb') {
-        storageModeBadge.textContent = 'SuperDB Nuvem';
+        storageModeBadge.textContent = 'Online / PIN desbloqueado';
         storageModeBadge.style.background = '#0056b3';
         if (btnSyncCloud) btnSyncCloud.style.display = 'inline-block';
       } else {
-        storageModeBadge.textContent = 'Modo Local';
+        storageModeBadge.textContent = 'Offline / PIN desbloqueado';
         storageModeBadge.style.background = '#6c757d';
         if (btnSyncCloud) btnSyncCloud.style.display = 'none';
       }
