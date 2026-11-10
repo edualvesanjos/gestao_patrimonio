@@ -1,50 +1,67 @@
 import { CONFIG } from './config.js';
 import { AuthManager } from './auth.js';
-const K=CONFIG.STORAGE_KEYS;
-const read=()=>{try{return JSON.parse(localStorage.getItem(K.LOCAL_DATA));}catch{return null;}};
-const errorText=async r=>{const d=await r.json().catch(()=>({}));return d.message||d.details||d.error||`HTTP ${r.status}`;};
-const clean=x=>{const {isSynced,_base,...record}=x;return record;};
-const headers=()=>{const s=AuthManager.getCurrentUser(),c=CONFIG.getSuperDBConfig();if(!s?.token)throw Error('É necessário autenticar online para sincronizar.');return {'apikey':c.anonKey,'Authorization':`Bearer ${s.token}`,'X-SuperDB-Project':c.projectSlug,'Accept-Profile':c.projectSchema,'Content-Profile':c.projectSchema};};
-export const DataManager={
- async _getLocalItems(){return AuthManager.decryptData(read());},
- async _setLocalItems(items){localStorage.setItem(K.LOCAL_DATA,JSON.stringify(await AuthManager.encryptData(items)));},
- async _cloud(){const c=CONFIG.getSuperDBConfig();const r=await fetch(`${c.apiUrl}/rest/v1/patrimonios?select=*`,{headers:headers()});if(!r.ok)throw Error(await errorText(r));return r.json();},
+const K = CONFIG.STORAGE_KEYS;
+const errorText = async response => { const d=await response.json().catch(()=>({})); return d.message || d.details || d.error || `HTTP ${response.status}`; };
+const headers = () => {
+ const s=AuthManager.getCurrentUser(), c=CONFIG.getSuperDBConfig();
+ if (!navigator.onLine || !s?.token || s.mode!=='online') throw Error('É necessário estar conectado e autenticado no SuperDB.');
+ return {'apikey':c.anonKey,'Authorization':`Bearer ${s.token}`,'X-SuperDB-Project':c.projectSlug,'Accept-Profile':c.projectSchema,'Content-Profile':c.projectSchema};
+};
+const endpoint = () => `${CONFIG.getSuperDBConfig().apiUrl}/rest/v1/patrimonios`;
+const readLegacy = () => { try{return JSON.parse(localStorage.getItem(K.LOCAL_DATA));}catch{return null;} };
+const clean = x => { const {isSynced,_base,...record}=x;return record; };
+const fields = x => Object.fromEntries(['id','usuario_id','item','categoria','quantidade','fabricante','modelo','num_patrimonio','baixado','transferido','observacoes'].filter(k=>x[k]!==undefined).map(k=>[k,x[k]]));
+export const DataManager = {
  async getAllItems(){
-  const local=await this._getLocalItems();let cloud=[];
-  if(AuthManager.getCurrentUser()?.token&&navigator.onLine){try{cloud=await this._cloud();}catch(e){console.warn('Consulta nuvem indisponível:',e.message);}}
-  const map=new Map(cloud.map(x=>[x.id,{...x,isSynced:true}]));
-  for(const item of local)map.set(item.id,item); // alterações pendentes sempre prevalecem na interface
-  // Cache de dados remotos somente após download bem-sucedido; não descarta pendências.
-  if(cloud.length){const pending=local.filter(x=>!x.isSynced);await this._setLocalItems([...cloud.map(x=>({...x,isSynced:true})),...pending.filter(x=>!cloud.some(c=>c.id===x.id))].map(x=>pending.find(p=>p.id===x.id)||x));}
-  return [...map.values()];
+  const r=await fetch(`${endpoint()}?select=*`,{headers:headers(),cache:'no-store'});
+  if(!r.ok)throw Error(`Consulta SuperDB: ${await errorText(r)}`);
+  return (await r.json()).map(x=>({...x,isSynced:true}));
  },
- async saveItem(itemData){
-  const s=AuthManager.getCurrentUser();if(!s||!AuthManager.isUnlocked())throw Error('Entre e desbloqueie o armazenamento com PIN.');
-  const items=await this._getLocalItems();const existing=items.find(x=>x.id===itemData.id);
-  const id=itemData.id||`pat_${crypto.randomUUID()}`;
-  const base = existing ? (existing._base ?? (existing.isSynced ? JSON.stringify(clean(existing)) : null)) : null;
-  const record={...existing,...itemData,id,usuario_id:s.user.id,_base:base,quantidade:Number.parseInt(itemData.quantidade,10)||1,baixado:itemData.baixado??existing?.baixado??false,transferido:itemData.transferido??existing?.transferido??false,isSynced:false};
+ async saveItem(item){
+  const s=AuthManager.getCurrentUser();headers();
+  const editing=!!item.id;
+  const record=fields({...item,id:item.id || `pat_${crypto.randomUUID()}`,usuario_id:s.user.id,quantidade:Number.parseInt(item.quantidade,10)||1});
   if(!record.item?.trim()||!record.categoria?.trim()||!record.num_patrimonio?.trim())throw Error('Preencha item, categoria e número de patrimônio.');
-  const next=items.filter(x=>x.id!==id);next.push(record);await this._setLocalItems(next);
-  return {pending:true};
+  const url=editing?`${endpoint()}?id=eq.${encodeURIComponent(record.id)}`:endpoint();
+  const r=await fetch(url,{method:editing?'PATCH':'POST',headers:{...headers(),'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(record)});
+  if(!r.ok)throw Error(`Gravação não confirmada (HTTP ${r.status}): ${await errorText(r)}`);
+  const result=await r.json().catch(()=>[]);
+  if(!Array.isArray(result)||result.length!==1)throw Error('O servidor não confirmou exatamente um registro. Consulte o banco antes de tentar novamente.');
+  return {pending:false};
  },
- async toggleBaixa(id){const items=await this.getAllItems();const item=items.find(x=>x.id===id);if(!item)throw Error('Patrimônio não encontrado.');return this.saveItem({...item,baixado:!item.baixado});},
+ async toggleBaixa(id){
+  const items=await this.getAllItems(), item=items.find(x=>x.id===id);
+  if(!item)throw Error('Patrimônio não encontrado ou sem permissão de consulta.');
+  return this.saveItem({...item,baixado:!item.baixado});
+ },
+ hasLegacyData(){return !!readLegacy();},
+ async legacyPendingCount(){
+  if(!this.hasLegacyData())return 0;
+  if(!AuthManager.isUnlocked())throw Error('Informe seu PIN antigo para recuperar os registros locais.');
+  const items=await AuthManager.decryptData(readLegacy());
+  return items.filter(x=>!x.isSynced).length;
+ },
  async syncLocalToCloud(){
-  const s=AuthManager.getCurrentUser();if(!s?.token)throw Error('Entre online para sincronizar.');
-  const items=await this._getLocalItems();const pending=items.filter(x=>!x.isSynced);
+  headers();
+  if(!this.hasLegacyData())return {sent:0};
+  if(!AuthManager.isUnlocked())throw Error('Desbloqueie o armazenamento antigo com seu PIN antes de recuperar pendências.');
+  const items=await AuthManager.decryptData(readLegacy());
+  const pending=items.filter(x=>!x.isSynced);
   if(!pending.length)return {sent:0};
-  const cloud=await this._cloud();const remote=new Map(cloud.map(x=>[x.id,x]));
-  // Bloqueio conservador: não sobrescrever registros existentes sem controle de versão.
-  const conflicts=pending.filter(x=>remote.has(x.id)&&(!x._base || JSON.stringify(clean(remote.get(x.id)))!==x._base));
-  if(conflicts.length)throw Error(`${conflicts.length} registro(s) alterado(s) remotamente ou sem versão-base. A sincronização foi bloqueada para evitar sobrescrita. Nenhum registro foi descartado.`);
-  const c=CONFIG.getSuperDBConfig();let sent=0;
+  const cloud=await this.getAllItems(), remote=new Map(cloud.map(x=>[x.id,x]));
+  const conflicts=pending.filter(x=>remote.has(x.id) && (!x._base || JSON.stringify(clean(remote.get(x.id)))!==x._base));
+  if(conflicts.length)throw Error(`${conflicts.length} conflito(s) detectado(s). Nenhum registro foi sobrescrito.`);
+  let sent=0;
   for(const item of pending){
-   const record=clean(item);
-   const editing=remote.has(item.id);
-   const url=editing?`${c.apiUrl}/rest/v1/patrimonios?id=eq.${encodeURIComponent(item.id)}`:`${c.apiUrl}/rest/v1/patrimonios`;
+   const record=fields(clean(item)), editing=remote.has(item.id);
+   const url=editing?`${endpoint()}?id=eq.${encodeURIComponent(item.id)}`:endpoint();
    const r=await fetch(url,{method:editing?'PATCH':'POST',headers:{...headers(),'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(record)});
-   if(!r.ok)throw Error(`Registro ${item.num_patrimonio}: ${await errorText(r)}. ${sent} registro(s) enviados antes da falha; não repita a operação sem conferir o banco.`);
-   item.isSynced=true;delete item._base;await this._setLocalItems(items);sent++;
+   if(!r.ok)throw Error(`Registro ${item.num_patrimonio}: ${await errorText(r)} (HTTP ${r.status}). ${sent} enviado(s). Pendências preservadas.`);
+   const saved=await r.json().catch(()=>[]);
+   if(!Array.isArray(saved)||saved.length!==1)throw Error(`Confirmação ambígua para ${item.num_patrimonio}. Confira o banco antes de repetir.`);
+   item.isSynced=true;delete item._base;
+   localStorage.setItem(K.LOCAL_DATA,JSON.stringify(await AuthManager.encryptData(items)));
+   sent++;
   }
   return {sent};
  }

@@ -56,15 +56,8 @@
         <button type="submit" class="btn btn-primary">Criar Conta no SuperDB</button>
       </form>
 
-      <div class="offline-access">
-        <h3>Acesso offline protegido</h3>
-        <p>Disponível após login online e criação de PIN neste navegador.</p>
-        <form id="form-offline">
-          <label for="offline-pin">PIN de 6 dígitos</label>
-          <input id="offline-pin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" required />
-          <button type="submit" class="btn btn-secondary">Entrar offline</button>
-        </form>
-      </div>
+      <p class="env-note">Operação exclusivamente online. Dados antigos protegidos por PIN permanecem preservados para recuperação.</p>
+
     </div>
   </div>
 
@@ -79,7 +72,7 @@
         <span id="user-info-display">Carregando...</span>
         <span id="storage-mode-badge" class="badge">Local</span>
         <span id="env-mode-badge" class="badge badge-env">DEV</span>
-        <button id="btn-sync-cloud" class="btn btn-sm btn-sync" title="Sincronizar itens locais para a nuvem SuperDB">☁️ Sincronizar</button>
+        <button id="btn-sync-cloud" class="btn btn-sm btn-sync" title="Recuperar registros pendentes de versões anteriores">☁️ Recuperar pendências</button>
         <button id="btn-logout" class="btn btn-sm btn-outline">Sair</button>
       </div>
     </header>

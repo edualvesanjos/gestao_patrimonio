@@ -1,50 +1,29 @@
-# Gestão de Patrimônio — Atibaia (DEV v1.1.0.19)
+# Gestão de Patrimônio – Atibaia | DEV v1.1.0.20
 
-## Instalação e publicação
+## Objetivo desta versão
 
-Projeto Vite estático, adequado a GitHub Pages após `npm install` e `npm run build`.
-Esta versão é exclusiva para branch `develop` e SuperDB DEV `p_bb8ce510ea`.
-**Não publicar em `main`**. Produção não está configurada e não existe fallback para DEV.
+Operação **somente online**: cadastro, edição e baixa dependem de resposta confirmada da API SuperDB. Falha HTTP não gera cadastro local nem mensagem falsa de sucesso.
 
-## Segurança e primeiro acesso
+## Preservação de dados antigos
 
-- Login via `POST /auth/v1/signin`; exige resposta com `user.id` e `data_plane_token`.
-- O cadastro pelo aplicativo está temporariamente desativado; criar contas no painel SuperDB.
-- Primeiro login online exige PIN de 6 números; dados locais criptografados com AES-GCM e chave PBKDF2.
-- A cada reinício da página, entrar online e informar PIN ou desbloquear com PIN offline.
-- Tokens de autenticação não são persistidos. Para sincronizar após reiniciar, fazer login online.
-- PIN não é substituto para autenticação remota. Bloqueio local pode ser contornado por quem controla o navegador; usar dispositivos protegidos.
-- Sem internet no primeiro acesso, não há perfil offline válido.
+Os dados criptografados das versões v1.1.0.18/19 continuam nas mesmas chaves do navegador. Não limpar o armazenamento, não remover PIN e não apagar registros pendentes. O botão **Recuperar pendências** usa o PIN anterior, compara registros remotos e tenta enviar pendências; falhas preservam o que não foi confirmado. O usuário deve conferir o registro no banco após qualquer erro ambíguo.
 
-## Dados e sincronização
+## Problema conhecido e bloqueio da homologação
 
-- Alterações ficam criptografadas no navegador e indicadas como pendentes até sincronização manual.
-- O botão de sincronização envia registros novos e alterações cuja versão-base remota não tenha mudado.
-- Se detectar conflito, interrompe e preserva o registro local. A interface de resolução de conflitos é uma etapa posterior.
-- Não limpar dados do site, cache de armazenamento nem usar modo privado para trabalho duradouro.
-- **Dados locais legados** de v1.1.0.17 permanecem intactos na chave antiga `patrimonio_items_local`, mas não são importados automaticamente por não terem identidade comprovada; revisar antes de migração.
-- A sincronização depende de permissões RLS e schema compatíveis; testar apenas em DEV.
+A restrição `patrimonios_usuario_id_fkey` aponta para `usuarios.id`, tabela vazia no projeto DEV. O HTTP 409 continuará até que o relacionamento e a política de acesso sejam corrigidos no servidor. **Esta versão não modifica schema nem implementa RBAC.** Não remover a FK indiscriminadamente nem criar usuários fictícios. Primeiro validar como o SuperDB associa identidade nativa, vínculos de acesso e políticas RLS. Nenhuma regra de autorização deve depender apenas de JavaScript.
 
-## Limitações da primeira entrega
+## Limites e cuidados
 
-- Não foi realizado teste de integração com o serviço SuperDB nem com usuários reais.
-- Não há resolução interativa de conflitos; registros conflitantes permanecem pendentes.
-- Um navegador com perfil offline configurado é associado a um único usuário; migração multiusuário depende de projeto posterior.
-- O armazenamento local usa localStorage criptografado. A migração para IndexedDB pode ser planejada após validar a integração.
-- Os dados não são disponíveis offline no primeiro acesso até uma consulta online bem-sucedida.
+- O aplicativo exige login online a cada abertura e não disponibiliza acesso offline.
+- O PIN antigo é usado apenas para recuperação dos dados locais preexistentes, não para autenticação offline.
+- A interface de perfis configuráveis e o administrador inicial ainda não foram implementados.
+- A branch `main` e o SuperDB PROD permanecem fora do escopo; o projeto PROD não existe.
+- Em caso de falha de rede após envio de POST, verifique no banco antes de repetir para evitar duplicidade.
 
-## Testes recomendados
+## Validação recomendada
 
-1. Login válido e inválido; conferir status da requisição `/auth/v1/signin`.
-2. Criar PIN, sair, desligar rede e desbloquear pelo PIN.
-3. Cadastrar item offline e verificar indicador Local.
-4. Restaurar rede, entrar online, desbloquear PIN e clicar em sincronizar.
-5. Confirmar no painel SuperDB que o registro foi gravado.
-6. Editar e sincronizar; simular alteração concorrente e confirmar bloqueio.
-7. Validar que nenhum dado é enviado ao ambiente PROD.
-
-## Correção v1.1.0.19
-
-- Reescrita a expressão de versão-base em `js/db.js` para eliminar o erro de parsing do navegador.
-- Corrigida a identificação de sessão online na interface.
-- Mantidas as chaves de armazenamento local da v1.1.0.18 para preservar dados e PIN.
+1. Subir arquivos na branch `develop`, realizar commit antes dos testes.
+2. Entrar com usuário SuperDB DEV e verificar HTTP 200 em `signin`.
+3. Consultar patrimônios; em caso de erro, conferir mensagem real e políticas de acesso.
+4. **Não tentar gravar novamente o patrimônio 111222** até corrigir a FK.
+5. Planejar a migração de relacionamento/RBAC antes de homologar gravação.

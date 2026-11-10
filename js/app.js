@@ -53,14 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     try {
       await AuthManager.loginSuperDB(document.getElementById('login-email').value,document.getElementById('login-password').value);
-      if (!AuthManager.hasOfflineProfile()) {
-        const pin=prompt('Crie um PIN local de 6 números para proteger os patrimônios offline:');
-        if (!pin) { AuthManager.logout(); return; }
-        await AuthManager.setupPin(pin);
-      } else {
-        const pin=prompt('Digite o PIN local de 6 números para desbloquear os dados deste dispositivo:');
-        if (!pin) { AuthManager.logout(); return; }
-        await AuthManager.unlock(pin);
+      // PIN antigo é solicitado apenas para recuperar registros locais pendentes.
+      if (DataManager.hasLegacyData()) {
+        if (!AuthManager.hasOfflineProfile()) {
+          alert('Há dados locais antigos, mas não foi encontrado um perfil PIN. Não limpe o navegador; procure suporte antes de prosseguir.');
+        } else {
+          const pin=prompt('Existem dados locais antigos. Informe o PIN anterior para permitir sua recuperação (não habilita login offline):');
+          if(pin) await AuthManager.unlock(pin);
+        }
       }
       checkAuthAndRender();
     } catch(err) { alert(err.message); }
@@ -69,11 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     alert('Cadastro pelo aplicativo temporariamente desativado. Crie usuários pelo painel do SuperDB e faça login.');
   });
-  offlineForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    try { await AuthManager.unlock(document.getElementById('offline-pin').value);checkAuthAndRender(); }
-    catch(err) { alert(err.message); }
-  });
+  if (offlineForm) offlineForm.addEventListener('submit', e => e.preventDefault());
 
   btnLogout.addEventListener('click', () => {
     AuthManager.logout();
@@ -81,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnSyncCloud) {
     btnSyncCloud.addEventListener('click', async () => {
-      try { const result=await DataManager.syncLocalToCloud(); alert(`${result.sent} registro(s) sincronizados.`); await loadItemsTable(); }
+      try { if(DataManager.hasLegacyData() && !AuthManager.isUnlocked()){const pin=prompt('PIN anterior para recuperar dados locais:');if(!pin)return;await AuthManager.unlock(pin);} const result=await DataManager.syncLocalToCloud(); alert(`${result.sent} registro(s) sincronizados.`); await loadItemsTable(); }
       catch(err) { alert(`Sincronização não concluída: ${err.message}`); await loadItemsTable(); }
     });
   }
@@ -129,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
       observacoes: document.getElementById('input-observacoes').value
     };
 
-    try { await DataManager.saveItem(itemData); closeModal(); await loadItemsTable();alert('Salvo localmente. Aguardando sincronização com o SuperDB.'); }
+    try { await DataManager.saveItem(itemData); closeModal(); await loadItemsTable();alert('Patrimônio gravado e confirmado pelo SuperDB.'); }
     catch(err) { alert(`Não foi possível salvar: ${err.message}`); }
   });
 
@@ -218,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function checkAuthAndRender() {
     const session = AuthManager.getCurrentUser();
 
-    if (session && session.user && AuthManager.isUnlocked()) {
+    if (session && session.user && session.mode === 'online' && session.token) {
       authScreen.classList.remove('active');
       appScreen.classList.add('active');
 
@@ -234,11 +230,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (session.mode === 'online') {
-        storageModeBadge.textContent = 'Online / PIN desbloqueado';
+        storageModeBadge.textContent = 'Online / SuperDB';
         storageModeBadge.style.background = '#0056b3';
         if (btnSyncCloud) btnSyncCloud.style.display = 'inline-block';
       } else {
-        storageModeBadge.textContent = 'Offline / PIN desbloqueado';
+        storageModeBadge.textContent = 'Acesso offline desativado';
         storageModeBadge.style.background = '#6c757d';
         if (btnSyncCloud) btnSyncCloud.style.display = 'none';
       }
