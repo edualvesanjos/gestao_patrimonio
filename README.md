@@ -27,3 +27,12 @@ A restrição `patrimonios_usuario_id_fkey` aponta para `usuarios.id`, tabela va
 3. Consultar patrimônios; em caso de erro, conferir mensagem real e políticas de acesso.
 4. **Não tentar gravar novamente o patrimônio 111222** até corrigir a FK.
 5. Planejar a migração de relacionamento/RBAC antes de homologar gravação.
+
+
+## v1.1.2 DEV — diagnóstico RPC
+
+- Botão **Testar permissão RPC** na tela principal após login.
+- Consulta exclusivamente a função `usuario_tem_permissao('patrimonios.consultar')` via POST `/rest/v1/rpc/usuario_tem_permissao`, usando a sessão autenticada já existente.
+- Mostra resultado booleano ou erro HTTP sem exibir tokens.
+- Não altera RLS, dados, login, PIN ou sincronização.
+- Teste ainda pendente de execução pelo usuário em DEV.

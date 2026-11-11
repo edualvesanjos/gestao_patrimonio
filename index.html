@@ -80,9 +80,13 @@
     <main class="app-content">
       <div class="action-bar">
         <h2>Controle de Ativos Patrimoniais</h2>
-        <button id="btn-open-modal" class="btn btn-primary">+ Novo Item</button>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+          <button id="btn-testar-rpc" type="button" class="btn btn-secondary">Testar permissão RPC</button>
+          <button id="btn-open-modal" class="btn btn-primary">+ Novo Item</button>
+        </div>
       </div>
 
+      <p id="resultado-teste-rpc" role="status" aria-live="polite" style="margin:0 0 16px;display:none"></p>
       <div class="status-cards">
         <div class="card">
           <h3>Total de Itens</h3>
@@ -184,7 +188,7 @@
   </div>
 
   <footer class="app-version-footer">
-    <small>Versão <span id="app-version-display">v1.1.0.17</span> | Prefeitura de Atibaia</small>
+    <small>Versão <span id="app-version-display">v1.1.2</span> | Prefeitura de Atibaia</small>
   </footer>
 
   <script type="module" src="js/config.js"></script>

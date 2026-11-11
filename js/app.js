@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const envModeBadge = document.getElementById('env-mode-badge');
   const appVersionDisplay = document.getElementById('app-version-display');
 
+  const btnTestarRpc = document.getElementById('btn-testar-rpc');
+  const resultadoTesteRpc = document.getElementById('resultado-teste-rpc');
   const btnOpenModal = document.getElementById('btn-open-modal');
   const btnCloseModal = document.getElementById('btn-close-modal');
   const btnCancelModal = document.getElementById('btn-cancel-modal');
@@ -106,6 +108,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeModal() {
     itemModal.classList.remove('active');
   }
+
+  btnTestarRpc.addEventListener('click', async () => {
+    btnTestarRpc.disabled = true;
+    resultadoTesteRpc.style.display = 'block';
+    resultadoTesteRpc.textContent = 'Consultando permissão no SuperDB DEV...';
+    try {
+      const permitido = await DataManager.testarPermissaoConsulta();
+      resultadoTesteRpc.textContent = permitido
+        ? 'RPC: true — usuário autenticado possui patrimonios.consultar.'
+        : 'RPC: false — permissão patrimonios.consultar não reconhecida para este usuário.';
+    } catch (err) {
+      resultadoTesteRpc.textContent = `Falha no teste RPC: ${err.message}`;
+    } finally {
+      btnTestarRpc.disabled = false;
+    }
+  });
 
   btnOpenModal.addEventListener('click', () => openModal());
   btnCloseModal.addEventListener('click', closeModal);

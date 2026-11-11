@@ -1,5 +1,5 @@
 export const CONFIG = {
-  APP_NAME: 'Patrimônio Atibaia', VERSION: '1.1.1',
+  APP_NAME: 'Patrimônio Atibaia', VERSION: '1.1.2',
   STORAGE_KEYS: { USER_SESSION: 'patrimonio_v118_session', LOCAL_DATA: 'patrimonio_v118_data', OFFLINE: 'patrimonio_v118_offline' },
   ENVIRONMENTS: {
     dev: {

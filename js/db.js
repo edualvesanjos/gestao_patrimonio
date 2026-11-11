@@ -12,6 +12,19 @@ const readLegacy = () => { try{return JSON.parse(localStorage.getItem(K.LOCAL_DA
 const clean = x => { const {isSynced,_base,...record}=x;return record; };
 const fields = x => Object.fromEntries(['id','usuario_id','item','categoria','quantidade','fabricante','modelo','num_patrimonio','baixado','transferido','observacoes'].filter(k=>x[k]!==undefined).map(k=>[k,x[k]]));
 export const DataManager = {
+ async testarPermissaoConsulta(){
+  const cfg=CONFIG.getSuperDBConfig();
+  const r=await fetch(`${cfg.apiUrl}/rest/v1/rpc/usuario_tem_permissao`,{
+   method:'POST',
+   headers:{...headers(),'Content-Type':'application/json'},
+   body:JSON.stringify({p_codigo:'patrimonios.consultar'}),
+   cache:'no-store'
+  });
+  if(!r.ok)throw Error(`RPC HTTP ${r.status}: ${await errorText(r)}`);
+  const resultado=await r.json().catch(()=>{throw Error('A API não retornou JSON válido.');});
+  if(typeof resultado!=='boolean')throw Error('A RPC retornou um formato inesperado (esperado: boolean).');
+  return resultado;
+ },
  async getAllItems(){
   const r=await fetch(`${endpoint()}?select=*`,{headers:headers(),cache:'no-store'});
   if(!r.ok)throw Error(`Consulta SuperDB: ${await errorText(r)}`);
