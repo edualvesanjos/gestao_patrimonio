@@ -36,3 +36,11 @@ A restrição `patrimonios_usuario_id_fkey` aponta para `usuarios.id`, tabela va
 - Mostra resultado booleano ou erro HTTP sem exibir tokens.
 - Não altera RLS, dados, login, PIN ou sincronização.
 - Teste ainda pendente de execução pelo usuário em DEV.
+
+
+## v1.1.3 DEV — login sem PIN
+- Login online não solicita PIN automaticamente, mesmo com dados legados.
+- O PIN continua disponível exclusivamente no botão Recuperar pendências.
+- A aba de cadastro público foi ocultada e o botão de login renomeado para Entrar.
+- Cadastro por Administrador: **ainda não implementado**. Requer rota de servidor protegida com validação de `usuarios.gerenciar` e integração segura com a API de autenticação. Não inserir service_role no navegador e não confundir ocultação de UI com autorização.
+- Não há alteração de schema, políticas RLS ou ambiente PROD.

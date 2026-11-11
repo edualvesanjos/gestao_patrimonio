@@ -55,15 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     try {
       await AuthManager.loginSuperDB(document.getElementById('login-email').value,document.getElementById('login-password').value);
-      // PIN antigo é solicitado apenas para recuperar registros locais pendentes.
-      if (DataManager.hasLegacyData()) {
-        if (!AuthManager.hasOfflineProfile()) {
-          alert('Há dados locais antigos, mas não foi encontrado um perfil PIN. Não limpe o navegador; procure suporte antes de prosseguir.');
-        } else {
-          const pin=prompt('Existem dados locais antigos. Informe o PIN anterior para permitir sua recuperação (não habilita login offline):');
-          if(pin) await AuthManager.unlock(pin);
-        }
-      }
+      // Login online não solicita PIN. Dados antigos continuam preservados
+      // e só são desbloqueados sob demanda em "Recuperar pendências".
       checkAuthAndRender();
     } catch(err) { alert(err.message); }
   });
